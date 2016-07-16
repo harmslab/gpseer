@@ -98,10 +98,17 @@ class Predictor(object):
         genotype : string
             genotype to get statistics.
         """
-
-    def histrogram(self, genotype, nbins=10):
-        pass
-
+        for reference in self.predictions.references:
+            genotypes = self.predictions.get(reference).genotypes
+            mapping = dict(zip(genotypes, np.arange(len(genotypes)))
+            index = mapping[genotypes[reference]]
+            data = np.predictions.get(reference).samples[:,index]
+            # Concatenate to full set, unless this is the first reference.
+            try:
+                samples = np.concatenate((samples, data))
+            except NameError:
+                samples = data
+        return samples
 
     def full_statistics(self, genotype):
         pass
