@@ -1,45 +1,69 @@
 import h5py
 import numpy as np
 
-class Reference(object):
+class ReferenceDatasets(object):
     """Class for constructing pythonic API interface to phenotype prediction
     h5py Dataset object stored in HDF5 file. Assumes that the dataset is two
     dimensions (with unbound size).
 
     Parameters
     ----------
-    h5map : H5Map object
-        Mapping object attached to a predictions dataset
+    name : str
+        name of this object stored in parent object (i.e. 'REF0000')
+    genotypes : array
+        array of genotypes in the same order that samples will be added. Used
+        to map genotypes to their predictions. NOT stored in memory, but a
+        separate HDF5 dataset.
+    predictions : PredictionsFile object
+        Mapping object attached to a HDF5 File.
     """
-    def __init__(self, name, genotypes, h5map):
-        self.h5map = h5map
+    def __init__(self, name, genotypes, predictions):
         self.name = name
-        #print(genotypes, genotypes.dtype)
-        # Create the dataset on disk
-        #self.h5map._f[self.name].create_dataset("genotypes", data=genotypes, dtype=np.string_)
-        self.h5map._f[self.name].create_dataset("samples", shape=(0,len(genotypes)), maxshape=(None,None))
+        self.predictions = predictions
+        ###### Create the datasets on disk ######
+        # Write genotypes to disk -- must be genotype
+        self.predictions.File[self.name].create_dataset("genotypes",
+            data=genotypes.astype("S" + str(len(genotypes[0]))))
+        # Create a predictions datasets
+        self.predictions.File[self.name].create_dataset("samples",
+            shape=(0,len(genotypes)), maxshape=(None,len(genotypes)))
 
-    def add(self, data):
+    def add_samples(self, data):
         """Add a sample of data to dataset. Adds more rows.
+
+        Parameters
+        ----------
+        data : numpy array
+            prediction samples to add to data array.
         """
-        olddata = self.samples
+        olddata = self.samples_
         oldshape = olddata.shape
         newshape = data.shape
-        self.grow(nrow=data.shape[0])
+        self._grow(nrow=data.shape[0])
         # Add the new data to old dataset
         olddata[oldshape[0]:oldshape[0]+newshape[0]] = data
 
     @property
+    def genotypes_(self):
+        """Get genotypes h5py dataset object."""
+        return self.predictions.File[self.name]["genotypes"]
+
+    @property
     def genotypes(self):
         """Get the genotypes for this dataset."""
-        return self.h5map._f(self.name)["genotypes"]
+        return self.genotypes_.value.astype(str)
+
+    @property
+    def samples_(self):
+        """Get the data."""
+        return self.predictions.File[self.name]["samples"]
 
     @property
     def samples(self):
-        """Get the data."""
-        return self.h5map._f[self.name]["samples"]
+        """Get sample values."""
+        return self.samples_.value
 
-    def grow(self, nrow=0, ncol=0):
+    def _grow(self, nrow=0, ncol=0):
         """Increase the size of the h5map by the given number of rows
         and columns.
 
@@ -50,11 +74,11 @@ class Reference(object):
         ncol : int
             number of columns to shrink the dataset by.
         """
-        data = self.samples
+        data = self.samples_
         shape = data.shape
         data.resize((shape[0]+nrow, shape[1]+ncol))
 
-    def shrink(self, nrow=0, ncol=0):
+    def _shrink(self, nrow=0, ncol=0):
         """Shrink the size of the h5map by the given number of rows
         and columns.
 
@@ -65,13 +89,14 @@ class Reference(object):
         ncol : int
             number of columns to shrink the dataset by.
         """
-        data = self.samples
+        data = self.samples_
         shape = data.shape
         data.resize((shape[0]-nrow, shape[1]-ncol))
 
 
-class H5Map(object):
-    """Thin layer class to make h5py datasets more readable as API.
+class PredictionsFile(object):
+    """An object to read and write to an HDF5 file via h5py's API. This is essentially
+    a thin layer on top of h5py.
 
     Parameters
     ----------
@@ -82,7 +107,8 @@ class H5Map(object):
         self.path = path
         self.predictor = predictor
         self.references = []
-        self._f = h5py.File(self.path, "w")
+        # Initialize an HDF5 file.
+        self.File = h5py.File(self.path, "w")
 
     def read(method):
         """Wrapper function for methods that need to read from file
@@ -91,7 +117,7 @@ class H5Map(object):
         def inner(self, *args, **kwargs):
             # Try to open file, unless already open
             try:
-                self._f = h5py.File(self.path, "r")
+                self.File = h5py.File(self.path, "r")
             except OSError:
                 pass
             output = method(self, *args, **kwargs)
@@ -105,7 +131,7 @@ class H5Map(object):
         def inner(self, *args, **kwargs):
             # Try to open file, unless already open
             try:
-                self._f = h5py.File(self.path, "a")
+                self.File = h5py.File(self.path, "a")
             except OSError:
                 pass
             output = method(self, *args, **kwargs)
@@ -116,15 +142,18 @@ class H5Map(object):
     def get(self, reference):
         """Get the complete dataset, named by reference.
         """
-        return getattr(self, "ref"+reference)
+        return getattr(self, "r"+reference)
 
     @write
     def add(self, reference, model):
-        """Add a reference prediction to file.
+        """Add a new HDF5 group to the File. This group will contain two
+        datasets, 1. genotypes and 2. samples.
         """
         # Expose API for that dataset
-        name = "ref" + reference
-        self._f.create_group(name)
-        new_ref = Reference(name, model, self)
+        name = "r" + reference
+        self.File.create_group(name)
+        new_ref = ReferenceDatasets(name, model, self)
+
+        # Attach to this object.
         setattr(self, name, new_ref)
         self.references.append(name)

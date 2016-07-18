@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seqspace
 
-from .h5map import H5Map
-from .utils import resample_to_convergence
+from .datasets import PredictionsFile
+from .genotypes import Genotype, GenotypeList
 
 class Predictor(object):
     """Genotype-phenotype map predictor.
@@ -19,7 +19,20 @@ class Predictor(object):
         self.space = space
         self.model = model
         self.kwargs = kwargs
-        self.predictions = H5Map(fname, self)
+        self.predictions = PredictionsFile(fname, self)
+
+        # Construct a genotypes list.
+        self.genotypes = GenotypeList()
+
+        # Add known genotypes
+        for genotype in self.space.genotypes:
+            g = Genotype(genotype, False, self.predictions)
+            self.genotypes.add(**{g.name:g})
+
+        # Add missing genotypes
+        for genotype in self.space.missing_genotypes:
+            g = Genotype(genotype, True, self.predictions)
+            self.genotypes.add(**{g.name:g})
 
     def sample_ref(self, nsamples, reference):
         """Sample the genotype-phenotype map, and fit with epistasis model."""
@@ -47,7 +60,7 @@ class Predictor(object):
             self.predictions.add(reference, self.space.complete_genotypes)
         except ValueError:
             pass
-        self.predictions.get(reference).add(phenotypes)
+        self.predictions.get(reference).add_samples(phenotypes)
 
     def sample_to_convergence(self, reference, sample_size=50, rtol=1e-2):
         """Sample the phenotypes until predictions converge to a tolerance of rtol.
@@ -89,26 +102,3 @@ class Predictor(object):
             old_std = std
 
             count += sample_size
-
-    def full_prediction(self, genotype):
-        """Get all predictions from all references states for a given genotype.
-
-        Parameters
-        ----------
-        genotype : string
-            genotype to get statistics.
-        """
-        for reference in self.predictions.references:
-            genotypes = self.predictions.get(reference).genotypes
-            mapping = dict(zip(genotypes, np.arange(len(genotypes)))
-            index = mapping[genotypes[reference]]
-            data = np.predictions.get(reference).samples[:,index]
-            # Concatenate to full set, unless this is the first reference.
-            try:
-                samples = np.concatenate((samples, data))
-            except NameError:
-                samples = data
-        return samples
-
-    def full_statistics(self, genotype):
-        pass
