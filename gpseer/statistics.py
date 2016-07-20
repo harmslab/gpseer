@@ -2,6 +2,29 @@ import numpy as np
 from scipy.optimize import curve_fit
 from scipy.signal import find_peaks_cwt
 
+def pearson(y_obs, y_pred):
+    """Calculate pearson coefficient between two variables.
+    """
+    x = y_obs
+    y = y_pred
+
+    xbar = np.mean(y_obs)
+    ybar = np.mean(y_pred)
+
+    terms = np.zeros(len(x), dtype=float)
+
+    for i in range(len(x)):
+        terms[i] = (x[i] - xbar) * (y[i] - ybar)
+
+    numerator = sum(terms)
+
+    # calculate denominator
+    xdenom = sum((x - xbar)**2)
+    ydenom = sum((y - ybar)**2)
+    denominator = np.sqrt(xdenom)*np.sqrt(ydenom)
+
+    return numerator/denominator
+
 def lorentz(x, center, width):
     """A Lorentz distribution for fitting peaks.
 
@@ -22,7 +45,7 @@ def lorentz(x, center, width):
     distribution = (1 / np.pi) * (0.5 * width) / ((x - center)**2 + (0.5*width)**2)
     return distribution
 
-def gaussian(x, center, width):
+def gaussian(x, amp, center, width):
     """A Gaussian distribution for fitting peaks.
 
     Parameters
@@ -39,32 +62,78 @@ def gaussian(x, center, width):
     distribution : numpy array
         normalized lorentzian distribution
     """
-    distribution = (1 / np.sqrt(2 * np.pi * width**2)) * np.exp(-(x - center)**2/ (2*width**2))
+    distribution = amp * np.exp(-(x - center)**2/ (2*width**2))
     return distribution
 
-def fit_peaks(xdata, ydata, function=lorentz, widths=np.arange(1,100)):
+def multigaussian(x, *args):
+    """Construct the sum of multiple distributions.
+
+    Parameters
+    ----------
+    x : numpy.array
+        x values for distribution
+    args :
+        first half must be the center of peaks, second half are widths.
+    """
+    args = np.array(args)
+    if len(args)%3 != 0:
+        raise Exception("""Number of args must be divisible by 3.""")
+    npeaks = int(len(args) / 3)
+    distribution = np.zeros(len(x))
+    for i in range(0, len(args), 3):
+        amp = args[i]
+        center = args[i+1]
+        widths = args[i+2]
+        distribution += gaussian(x, amp, center, widths)
+    return distribution
+
+def fit_peaks(xdata, ydata, widths=np.arange(1,100)):
     """Find peaks in a dataset using continuous wave transform and fit with
     distribution function.
 
     Parameters
     ----------
-    data : array
+    xdata : array
         1-D data to search for peaks
+    ydata : array
+        1-D data, height of peaks
     widths :
         1-D array of widths to use for calculating the CWT matrix. In general,
         this range should cover the expected width of peaks of interest.
-    """
-    # Find peaks using
-    indices = find_peaks_cwt(ydata, widths=widths)
 
-    # Fit the peaks that were found with function.
-    centers = xdata[indices]
-    widths = np.ones(len(centers))
-    peaks = []
+    Returns
+    -------
+    peaks : array
+        list of parameters
+    """
+    # Find peaks using continuous wave tranform
+    indices = find_peaks_cwt(ydata, widths=widths)
     npeaks = len(indices)
-    for i in range(npeaks):
-        popt, pcov = curve_fit(function, xdata, ydata, p0=(centers[i], widths[i]))
-        center = popt[0]
-        width = popt[1]
-        peaks.append((center, width))
+    # Attempt to fit npeaks with model
+    attempts = 0
+    score = 0
+    finished = False
+    while attempts < 5 and finished is False and score < 0.9:
+        finished = False
+        # Attempt guesses that are multiple orders of magnitude
+        try:
+            # Construct parameters for model with guesses
+            p0 = np.ones(npeaks*3) * 0.001 * 10**attempts
+            for i in range(npeaks):
+                p0[3*i] = ydata[indices[i]]
+                p0[3*i+1] = xdata[indices[i]]
+            # Fit the data with multiple peaks
+            popt, pcov = curve_fit(multigaussian, xdata, ydata, p0=p0)
+            score = pearson(ydata, multigaussian(xdata, *popt))
+            finished = True
+        except RuntimeError:
+            attempts += 1
+
+    # If the last loop didn't finish, raise an error
+    if finished is False:
+        raise RuntimeError("""Optimal parameters not found.""")
+    # Return parameters
+    peaks = []
+    for i in range(0,len(popt),3):
+        peaks.append((popt[i], popt[i+1], popt[i+2]))
     return peaks

@@ -145,14 +145,14 @@ class PredictionsFile(object):
         return getattr(self, "r"+reference)
 
     @write
-    def add(self, reference, model):
+    def add(self, reference, genotypes):
         """Add a new HDF5 group to the File. This group will contain two
         datasets, 1. genotypes and 2. samples.
         """
         # Expose API for that dataset
         name = "r" + reference
         self.File.create_group(name)
-        new_ref = ReferenceDatasets(name, model, self)
+        new_ref = ReferenceDatasets(name, genotypes, self)
 
         # Attach to this object.
         setattr(self, name, new_ref)

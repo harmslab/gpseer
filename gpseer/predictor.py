@@ -38,6 +38,7 @@ class Predictor(object):
         """Sample the genotype-phenotype map, and fit with epistasis model."""
         phenotypes = np.empty((nsamples, len(self.space.complete_genotypes)))
         for i in range(nsamples):
+            # Draw a pseudo sample from the genotype-phenotype map
             sample = self.space.sample()
             modeli = self.model(
                 reference,

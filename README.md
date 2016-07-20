@@ -27,7 +27,7 @@ predictor = Predictor(gpm,
 # Sample from a given references state
 reference= "0000"
 predictor.sample_to_convergence(reference=reference)
-print(predictor.full_predictions(reference)
+print(predictor.genotypes.g0000.samples())
 ```
 
 # Install

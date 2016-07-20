@@ -1,13 +1,11 @@
 import numpy as np
 
-from .statistics import fit_peaks, lorentz
+from .statistics import fit_peaks, gaussian
 
 class GenotypeList(object):
-    """Container object for genotypes.
+    """Container object for a list of genotypes.
     """
     def __init__(self, **kwargs):
-        """
-        """
         self._genotypes = {}
         self.add(**kwargs)
 
@@ -59,6 +57,11 @@ class Genotype(object):
         ----------
         genotype : string
             genotype to get statistics.
+
+        Returns
+        -------
+        samples : 2d array
+            array of many samples of predicted data for this genotype.
         """
         if reference is None:
             references = self.predictions.references
@@ -67,7 +70,6 @@ class Genotype(object):
 
         for ref in references:
             ref = ref[1:]
-            print(ref)
             genotypes = self.predictions.get(ref).genotypes
             mapping = dict(zip(genotypes, np.arange(len(genotypes))))
             index = mapping[self.genotype]
@@ -82,21 +84,50 @@ class Genotype(object):
         return samples
 
     def histogram(self, reference=None, bins=30, range=None, **kwargs):
-        """bin data.
+        """Make histogram of all prediction for this genotype.
+
+        Parameters
+        ----------
+        reference : string (default=None)
+            reference states for epistasis models.
+        bins : int
+            number of bins to construct histogram
+        range : tuple
+            bounds for histogram
+        kwargs are passed into numpy's histogram function
+
+        Returns
+        -------
+        histdata : tuple of arrays
+            (count, values)
         """
-        predictions = self.samples(reference=reference)
-        return np.histogram(predictions, bins=bins, range=range, **kwargs)
+        samples = self.samples(reference=reference)
+        self.histdata = np.histogram(samples, bins=bins, range=range, **kwargs)
+        return self.histdata
 
     def fit_peaks(self, reference=None,
         cwtrange=None,
         peak_widths=np.arange(1,100),
         bins=30,
-        function=lorentz,
+        function=gaussian,
         **kwargs):
-        """Find peaks in the data.
+        """Find peaks in the prediction distributions and return the statistics.
+
+        Parameters
+        ----------
+        reference : str
+
+        Returns
+        -------
+        peaks : list
+            list of tuples. first element is a peak center, and second element
+            is a peak width.
         """
-        data = self.histogram(reference, bins, range=cwtrange, normed=True, **kwargs)
+        try:
+            data = self.histdata
+        except AttributeError:
+            data = self.histogram(reference, bins, range=cwtrange, normed=True, **kwargs)
         counts = data[0]
         values = data[1][1:]
-        print(len(counts), len(values))
-        return fit_peaks(values, counts, widths=peak_widths, function=function)
+        self.peaks =  fit_peaks(values, counts, widths=peak_widths, function=function)
+        return self.peaks
