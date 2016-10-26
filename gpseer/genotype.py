@@ -10,19 +10,28 @@ class Genotype(object):
     ----------
     Interation : Iteration object
     """
-    def __init__(self, Iteration, genotype, index):
+    def __init__(self, Iteration, genotype):
         self.Iteration = Iteration
         self.Group = self.Iteration.genotype_group
-        self.index = index
-        self.label = genotype
+        self.genotype = genotype
+        self.index = _np.where(self.Iteration.GenotypePhenotypeMap.complete_genotypes == genotype)
 
     @classmethod
-    def read(cls, dataset):
+    def read(cls, Iteration, Dataset):
         """Read the genotype from an existing Iteration object.
         """
-        genotype = cls(label)
-        genotype._dataset = self.Iteration.Group[genotype.label]
-        return genotype
+        genotype = Dataset.name.split("/")[-1]
+        self = cls(Iteration, genotype)
+        self.Dataset = Dataset
+        return self
+
+    def clear(self):
+        """Clear the Genotype Dataset from the H5Py
+        """
+        path = self.Dataset.name
+        file = self.Dataset.file
+        del file[path]
+        del self.Dataset
 
     def bin(self, nbins=100,range=(0,100)):
         """Bin all data for this genotype, setting the dataset attribute of this
@@ -37,7 +46,7 @@ class Genotype(object):
         range : tuple
             range for histogram
         """
-        dataset = _np.empty((nbins,2), dtype=float)
+        dataset = _np.zeros((nbins,2), dtype=float)
         for key, model in self.Iteration.Models.items():
             # Get data for a given genotype
             data = model.Dataset[:, self.index]
@@ -45,7 +54,7 @@ class Genotype(object):
             dataset[:,0] += heights
         dataset[:,1] = bins[1:]
         # Write dataset to hdf5 file.
-        self.Dataset = self.Group.create_dataset(self.label, data=dataset)
+        self.Dataset = self.Group.create_dataset(self.genotype, data=dataset)
 
     def fit_peaks(self, reference=None,
         cwtrange=None,

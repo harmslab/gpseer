@@ -16,6 +16,7 @@ class Iteration(object):
         # Get name of iteration.
         self.label = label
         self.Group = self.Predictor.File.create_group(self.label)
+        self.Group.attrs["latest"] = 1
 
         # Initialize datasets
         self.genotypes = known_genotypes
@@ -35,8 +36,32 @@ class Iteration(object):
         # Initialize genotypes
         self.Genotypes = {}
         for i, genotype in enumerate(self.GenotypePhenotypeMap.complete_genotypes):
-            geno = _Genotype(self, genotype, i)
+            geno = _Genotype(self, genotype)
             self.Genotypes[genotype] = geno
+
+    @classmethod
+    def read(cls, Predictor, Group):
+        """Read an iteration from an hdf5 file.
+        """
+        self = cls.__new__(cls)
+        self.Predictor = Predictor
+        self.label = Group.name.split("/")[-1]
+        self.Group = Group
+        # Set the Datasets in this group
+        self._genotypes = self.Group["genotypes"]
+        self._phenotypes = self.Group["phenotypes"]
+        self._stdeviations = self.Group["stdeviations"]
+        # Get sub groups
+        self.model_group = self.Group["Models"]
+        self.genotype_group = self.Group["Genotypes"]
+        # Read members of groups
+        self.Models = {}
+        for key, model in self.model_group.items():
+            self.Models[key] = _Model.read(self, model, **self.Predictor.options_model)
+        self.Genotypes = {}
+        for key, genotype in self.genotype_group.items():
+            self.Genotypes[key] = _Genotype.read(self, genotype)
+        return self
 
     @property
     def GenotypePhenotypeMap(self):
@@ -73,10 +98,6 @@ class Iteration(object):
         """Writes phenotypes to datasets"""
         self._stdeviations = self.Group.create_dataset("stdeviations", data=stdeviations)
 
-    @classmethod
-    def read(cls, file, path):
-        """"""
-
     def get(self, genotype):
         """Get the data for a given genotype.
         """
@@ -86,12 +107,17 @@ class Iteration(object):
         """Sweep through genotypes and bin data
         """
         for key, genotype in self.Genotypes.items():
+            # Try to clear the dataset
+            try: genotype.clear()
+            except: pass
             genotype.bin(nbins, range)
 
     def bin_genotype(self, genotype, nbins=100,range=(0,100)):
         """Bin data of a given genotype
         """
         genotypex = self.Genotypes[genotype]
+        try: genotypex.clear()
+        except: pass
         genotypex.bin(nbins, range)
 
     def sample(self, nsamples):

@@ -28,15 +28,14 @@ class Model(object):
         self.base_model.sort(self.Iteration.GenotypePhenotypeMap.genotypes)
         self.base_model.sort_missing(self.Iteration.GenotypePhenotypeMap.missing_genotypes)
         self.Group = self.Iteration.model_group
-        # Initiate a dataset
-        self.Dataset = self.Group.create_dataset(self.label,
-            shape=(0, len(self.base_model.complete_genotypes)),
-            maxshape=(None, len(self.base_model.complete_genotypes))
-        )
 
     @classmethod
-    def read(cls):
-        """"""
+    def read(cls, Iteration, Dataset, **options):
+        """Read the model data from a Model Dataset."""
+        reference = Dataset.name.split("/")[-1]
+        self = cls(Iteration, reference, **options)
+        self.Dataset = Dataset
+        return self
 
     def sample(self, nsamples):
         """Sample the genotype-phenotype map, and fit with epistasis model."""
@@ -50,11 +49,18 @@ class Model(object):
             # Add predictions to dataset
             phenotypes[i, :] = modeli.statistics.predict()
         # Resize the dataset
-        dims = self.Dataset.shape
-        newdims = (dims[0] + nsamples, dims[1])
-        self.Dataset.resize(newdims)
-        # Add dataset
-        self.Dataset[dims[0]:dims[0]+nsamples,:] = phenotypes
+        try:
+            dims = self.Dataset.shape
+            newdims = (dims[0] + nsamples, dims[1])
+            self.Dataset.resize(newdims)
+            # Add dataset
+            self.Dataset[dims[0]:dims[0]+nsamples,:] = phenotypes
+        except AttributeError:
+            # Initiate a dataset
+            self.Dataset = self.Group.create_dataset(self.label,
+                data=phenotypes,
+                maxshape=(None, len(self.base_model.complete_genotypes))
+            )
 
     def sample_to_convergence(self, sample_size=50, rtol=1e-2):
         """Sample the phenotypes until predictions converge to a tolerance of rtol.
