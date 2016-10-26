@@ -125,6 +125,8 @@ def fit_peaks(xdata, ydata, widths=np.arange(1,100)):
             # Fit the data with multiple peaks
             popt, pcov = curve_fit(multigaussian, xdata, ydata, p0=p0)
             score = pearson(ydata, multigaussian(xdata, *popt))
+            if score < 0.9:
+                raise RuntimeError
             finished = True
         except RuntimeError:
             attempts += 1

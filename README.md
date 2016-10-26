@@ -4,7 +4,7 @@ A Python API that predicts unknown phenotypes genotype-phenotype maps from known
 
 Still under development.
 
-The base class, `Predictor`, uses linear regression to fit a high-order epistasis model to an incomplete genotype-phenotype map. Due to the growing size of experimental genotype-phenotype maps and the necessity to bootstrap these maps, we've built GPSeer on top of `h5py`. This enables us to manage and search large datasets (on the order of Terabytes) efficiently.
+The base class, `Predictor`, fits a high-order epistasis model (using Linear Regression) to an incomplete genotype-phenotype map. Due to the growing size of experimental genotype-phenotype maps and the necessity to bootstrap these maps, we've built GPSeer on top of `h5py`. This enables us to manage and search large datasets (on the order of Terabytes) efficiently.
 
 GPSeer uses the Python APIs, SeqSpace and Epistasis, to draw out as much information as possible from a measured genotype-phenotype map, and then makes predictions about unknown genotype-phenotypes.
 
