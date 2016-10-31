@@ -20,7 +20,10 @@ class Predictor(object):
     Parameters
     ----------
     """
-    def __init__(self, known_genotypes, known_phenotypes, known_stdeviations,
+    def __init__(self, known_genotypes,
+            known_phenotypes,
+            known_stdeviations,
+            mutations,
             fname="predictor.hdf5",
             **options
         ):
@@ -30,14 +33,15 @@ class Predictor(object):
             known_genotype[0],
             known_genotypes,
             known_phenotypes,
-            known_stdeviations
+            known_stdeviations,
+            mutations=mutations
             **self.options_gpm)
         # Create an HDF5 for predictor class
         self.File = _h5py.File(fname, "a")
-        #genotypes = known_genotypes.astype("S" + str(len(known_genotypes[0])))
-        self.genotypes = known_genotypes#self.File.create_dataset("genotypes", data=genotypes)
-        self.phenotypes = known_phenotypes#self.File.create_dataset("phenotypes", data=known_phenotypes)
-        self.stdeviations = known_stdeviations#self.File.create_dataset("stdeviations", data=known_errors)
+        self.genotypes = known_genotypes
+        self.phenotypes = known_phenotypes
+        self.stdeviations = known_stdeviations
+        self.mutations = mutations
 
     def __construct__(self, **options):
         self.iterations = {}
@@ -54,68 +58,6 @@ class Predictor(object):
         )
         self.options.update(**options)
 
-    def _suggest_iteration_label(self):
-        """Return a suggested label for an iteration of the model.
-        """
-        return "iteration-" + str(len(self.iterations))
-
-    def _suboptions(self, keys):
-        """Get subset of options from options dictionary"""
-        opts = {}
-        for key in keys:
-            try: opts[key] = self.options.get(key)
-            except KeyError: pass
-        return opts
-
-    @property
-    def genotypes(self):
-        """Convert the genotype to an array of strings"""
-        return self._genotypes.value.astype(str)
-
-    @property
-    def phenotypes(self):
-        """Get phenotypes as numpy array in memory"""
-        return self._phenotypes.value
-
-    @property
-    def stdeviations(self):
-        """Get phenotypes as numpy array in memory"""
-        return self._stdeviations.value
-
-    @genotypes.setter
-    def genotypes(self, genotypes):
-        """"""
-        self._genotypes = self.File.create_dataset("genotypes",
-            data=genotypes.astype("S" + str(len(genotypes[0]))))
-
-    @phenotypes.setter
-    def phenotypes(self, phenotypes):
-        """Writes phenotypes to datasets"""
-        self._phenotypes = self.File.create_dataset("phenotypes", data=phenotypes)
-
-    @stdeviations.setter
-    def stdeviations(self, stdeviations):
-        """Writes phenotypes to datasets"""
-        self._stdeviations = self.File.create_dataset("stdeviations", data=stdeviations)
-
-    @property
-    def options_model(self):
-        """ Return options for models"""
-        sub_options = ["order", "log_transform", "mutations", "logbase"]
-        return self._suboptions(sub_options)
-
-    @property
-    def options_gpm(self):
-        """ Return options for genotype-phenotype map"""
-        sub_options = ["log_transform", "mutations", "logbase"]
-        return self._suboptions(sub_options)
-
-    @property
-    def options_genotypes(self):
-        """ Return options for genotypes"""
-        sub_options = ["nbins", "range"]
-        return self._suboptions(sub_options)
-
     @classmethod
     def read(cls, fname, **options):
         """Read a Predictor from a HDF5 file.
@@ -126,16 +68,19 @@ class Predictor(object):
         self._genotypes = self.File["genotypes"]
         self._phenotypes = self.File["phenotypes"]
         self._stdeviations = self.File["stdeviations"]
+        self._mutations = self.File["mutations"]
         self.GenotypePhenotypeMap = _seqspace.GenotypePhenotypeMap(
             self.genotypes[0],
             self.genotypes,
             self.phenotypes,
             self.stdeviations,
+            mutations=self.mutations,
             **self.options_gpm)
         items = list(self.File.keys())
         items.remove("genotypes")
         items.remove("phenotypes")
         items.remove("stdeviations")
+        items.remove("mutations")
         # Get all iterations
         for item in items:
             Group = self.File[item]
@@ -175,7 +120,87 @@ class Predictor(object):
         self.genotypes = space.genotypes
         self.phenotypes = space.phenotypes
         self.stdeviations = space.stdeviations
+        self.mutations = space.mutations
         return self
+
+    def _suggest_iteration_label(self):
+        """Return a suggested label for an iteration of the model.
+        """
+        return "iteration-" + str(len(self.iterations))
+
+    def _suboptions(self, keys):
+        """Get subset of options from options dictionary"""
+        opts = {}
+        for key in keys:
+            try: opts[key] = self.options.get(key)
+            except KeyError: pass
+        return opts
+
+    @property
+    def genotypes(self):
+        """Convert the genotype to an array of strings"""
+        return self._genotypes.value.astype(str)
+
+    @property
+    def phenotypes(self):
+        """Get phenotypes as numpy array in memory"""
+        return self._phenotypes.value
+
+    @property
+    def stdeviations(self):
+        """Get phenotypes as numpy array in memory"""
+        return self._stdeviations.value
+
+    @property
+    def mutations(self):
+        """Get mutations as dictionary in memory."""
+        mutations = {}
+        for key, dataset in self._mutations.items():
+            mutations[int(key)] = list(dataset.value.astype(str))
+        return mutations
+
+    @genotypes.setter
+    def genotypes(self, genotypes):
+        """"""
+        self._genotypes = self.File.create_dataset("genotypes",
+            data=genotypes.astype("S" + str(len(genotypes[0]))))
+
+    @phenotypes.setter
+    def phenotypes(self, phenotypes):
+        """Writes phenotypes to datasets"""
+        self._phenotypes = self.File.create_dataset("phenotypes", data=phenotypes)
+
+    @stdeviations.setter
+    def stdeviations(self, stdeviations):
+        """Writes phenotypes to datasets"""
+        self._stdeviations = self.File.create_dataset("stdeviations", data=stdeviations)
+
+    @mutations.setter
+    def mutations(self, mutations):
+        """Writes a mutation dictionary to hdf5 file."""
+        self._mutations = self.File.create_group("mutations")
+        for key, value in mutations.items():
+            label = str(key)
+            dataset = _np.array(value, dtype="S1")
+            self._mutations.create_dataset(label, data=dataset)
+
+    @property
+    def options_model(self):
+        """ Return options for models"""
+        sub_options = ["order", "log_transform", "mutations", "logbase"]
+        return self._suboptions(sub_options)
+
+    @property
+    def options_gpm(self):
+        """ Return options for genotype-phenotype map"""
+        sub_options = ["log_transform", "mutations", "logbase"]
+        return self._suboptions(sub_options)
+
+    @property
+    def options_genotypes(self):
+        """ Return options for genotypes"""
+        sub_options = ["nbins", "range"]
+        return self._suboptions(sub_options)
 
     def get(self, genotype):
         """Get the data for a given genotype from the latest iteration of the model.

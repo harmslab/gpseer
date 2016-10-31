@@ -56,14 +56,13 @@ class Genotype(object):
         # Write dataset to hdf5 file.
         self.Dataset = self.Group.create_dataset(self.genotype, data=dataset)
 
-    def fit_peaks(self, reference=None,
+    def fit_peaks(self,
         cwtrange=None,
         peak_widths=_np.arange(1,100),
         bins=30,
         function=gaussian,
         **kwargs):
-        """Find peaks in the predicxtion distributions and return the statistics.
-
+        """
         Parameters
         ----------
         reference : str
@@ -77,5 +76,5 @@ class Genotype(object):
         data = self.Dataset
         counts = data[0]
         values = data[1][1:]
-        self.peaks =  fit_peaks(values, counts, widths=peak_widths, function=function)
+        self.peaks = fit_peaks(values, counts, widths=peak_widths, function=function)
         return self.peaks

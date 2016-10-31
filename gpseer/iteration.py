@@ -2,7 +2,8 @@ from .model import Model as _Model
 from .genotype import Genotype as _Genotype
 
 class Iteration(object):
-    """A container object that holds a single iteration of the predictor.
+    """An object/API that manages a single iteration of predictions for a given
+    genotype-phenotype map.
     """
     def __init__(self,
             Predictor,

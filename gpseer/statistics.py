@@ -45,7 +45,7 @@ def lorentz(x, center, width):
     distribution = (1 / np.pi) * (0.5 * width) / ((x - center)**2 + (0.5*width)**2)
     return distribution
 
-def gaussian(x, amp, center, width):
+def gaussian(x, center, amp, width):
     """A Gaussian distribution for fitting peaks.
 
     Parameters
@@ -65,31 +65,37 @@ def gaussian(x, amp, center, width):
     distribution = amp * np.exp(-(x - center)**2/ (2*width**2))
     return distribution
 
-def multigaussian(x, *args):
-    """Construct the sum of multiple distributions.
+def multigaussian(x, *flattened_peak_data):
+    """Returns a 1d array with multiple gaussian peaks c
 
     Parameters
     ----------
     x : numpy.array
         x values for distribution
-    args :
-        first half must be the center of peaks, second half are widths.
+    flattened_peak_data : (optional arguments)
+        3-tuples with (center, amplitude, width) of each peak.
     """
-    args = np.array(args)
-    if len(args)%3 != 0:
-        raise Exception("""Number of args must be divisible by 3.""")
-    npeaks = int(len(args) / 3)
+    # Check to see if the data is flattened.
+    try:
+        if hasattr(flattened_peak_data[0], "__init__"):
+            
+
+
+    npeaks = len(peaks)
     distribution = np.zeros(len(x))
-    for i in range(0, len(args), 3):
-        amp = args[i]
-        center = args[i+1]
-        widths = args[i+2]
-        distribution += gaussian(x, amp, center, widths)
+    for i in range(0, peaks):
+        if len(peaks[i]) != 3:
+            raise Exception("Each peak must have three arguments: (center, height, width)")
+        distribution += gaussian(x, *peaks[i])
     return distribution
 
 def fit_peaks(xdata, ydata, widths=np.arange(1,100)):
-    """Find peaks in a dataset using continuous wave transform and fit with
-    distribution function.
+    """Detect, fit, and return parameters of multiple gaussian peaks in a 1d-array using continuous
+    wave transform.
+
+    Uses scipy's `find_peaks_cwt` function to find peaks in the array first. Then,
+    uses scipy's `curve_fit` function to fit the peaks and estimate their amplitudes
+    and widths.
 
     Parameters
     ----------
