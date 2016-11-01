@@ -10,11 +10,11 @@ class Genotype(object):
     ----------
     Interation : Iteration object
     """
-    def __init__(self, Iteration, genotype):
+    def __init__(self, Iteration, genotype, index):
         self.Iteration = Iteration
         self.Group = self.Iteration.genotype_group
         self.genotype = genotype
-        self.index = _np.where(self.Iteration.GenotypePhenotypeMap.complete_genotypes == genotype)
+        self._index = index
 
     @classmethod
     def read(cls, Iteration, Dataset):
@@ -24,6 +24,40 @@ class Genotype(object):
         self = cls(Iteration, genotype)
         self.Dataset = Dataset
         return self
+
+    @property
+    def index(self):
+        """Get list of peaks in memory.
+        """
+        # Try returning the hdf5 dataset attribute
+        try:
+            return self.Dataset.attrs["index"]
+        except:
+            return self._index
+
+    @index.setter
+    def index(self, index):
+        """Set the index of the genotype in model samples.
+        """
+        # Try setting attribute of hdf5 dataset otherwise just set attribute
+        self.Dataset.attrs["index"] = index
+
+    @property
+    def npeaks(self):
+        """Get the number of peaks in dataset."""
+        return len(self.peaks)
+
+    @property
+    def peaks(self):
+        """Get list of peaks in memory.
+        """
+        return self.Dataset.attrs["peaks"]
+
+    @peaks.setter
+    def peaks(self, peaks):
+        """
+        """
+        self.Dataset.attrs["peaks"] = peaks
 
     def clear(self):
         """Clear the Genotype Dataset from the H5Py
@@ -55,18 +89,10 @@ class Genotype(object):
         dataset[:,1] = bins[1:]
         # Write dataset to hdf5 file.
         self.Dataset = self.Group.create_dataset(self.genotype, data=dataset)
+        self.index = self._index
 
-    def fit_peaks(self,
-        cwtrange=None,
-        peak_widths=_np.arange(1,100),
-        bins=30,
-        function=gaussian,
-        **kwargs):
+    def fit(self):
         """
-        Parameters
-        ----------
-        reference : str
-
         Returns
         -------
         peaks : list
@@ -74,7 +100,7 @@ class Genotype(object):
             is a peak width.
         """
         data = self.Dataset
-        counts = data[0]
-        values = data[1][1:]
-        self.peaks = fit_peaks(values, counts, widths=peak_widths, function=function)
-        return self.peaks
+        counts = data[:,0]
+        values = data[:,1]
+        peaks = fit_peaks(values, counts)
+        self.peaks = peaks

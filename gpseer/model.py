@@ -20,9 +20,9 @@ class Model(object):
         self.options = options
         self.base_model = _LinearEpistasisRegression(
             self.reference,
-            self.Iteration.genotypes,
-            self.Iteration.phenotypes,
-            stdeviations=self.Iteration.stdeviations,
+            self.Iteration.Priors.genotypes,
+            self.Iteration.Priors.phenotypes,
+            stdeviations=self.Iteration.Priors.stdeviations,
             **self.options
         )
         self.base_model.sort(self.Iteration.GenotypePhenotypeMap.genotypes)

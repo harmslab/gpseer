@@ -1,11 +1,11 @@
+import h5py as _h5py
 import matplotlib.pyplot as _plt
 import numpy as _np
 import json as _json
 
 import seqspace as _seqspace
-
 from .iteration import Iteration as _Iteration
-import h5py as _h5py
+from .results import Results as _Results
 
 class Predictor(object):
     """Genotype-phenotype map predictor.
@@ -20,22 +20,13 @@ class Predictor(object):
     Parameters
     ----------
     """
-    def __init__(self, known_genotypes,
-            known_phenotypes,
-            known_stdeviations,
-            mutations,
+    def __init__(self, known_genotypes, known_phenotypes, known_stdeviations, mutations,
             fname="predictor.hdf5",
+            overwrite=False,
             **options
         ):
         # Construct
         self.__construct__(**options)
-        self.GenotypePhenotypeMap = _seqspace.GenotypePhenotypeMap(
-            known_genotype[0],
-            known_genotypes,
-            known_phenotypes,
-            known_stdeviations,
-            mutations=mutations
-            **self.options_gpm)
         # Create an HDF5 for predictor class
         self.File = _h5py.File(fname, "a")
         self.genotypes = known_genotypes
@@ -44,6 +35,8 @@ class Predictor(object):
         self.mutations = mutations
 
     def __construct__(self, **options):
+        """Set all default options from predictor and prepare for learning.
+        """
         self.iterations = {}
         self.latest_iteration = None
         # Default options
@@ -69,13 +62,6 @@ class Predictor(object):
         self._phenotypes = self.File["phenotypes"]
         self._stdeviations = self.File["stdeviations"]
         self._mutations = self.File["mutations"]
-        self.GenotypePhenotypeMap = _seqspace.GenotypePhenotypeMap(
-            self.genotypes[0],
-            self.genotypes,
-            self.phenotypes,
-            self.stdeviations,
-            mutations=self.mutations,
-            **self.options_gpm)
         items = list(self.File.keys())
         items.remove("genotypes")
         items.remove("phenotypes")
@@ -115,7 +101,7 @@ class Predictor(object):
         self.__construct__(**opt1)
         # Create HDF5 file
         self.File = _h5py.File(fname, "a")
-        self.GenotypePhenotypeMap = space
+        #self.GenotypePhenotypeMap = space
         # Write out main datasets
         self.genotypes = space.genotypes
         self.phenotypes = space.phenotypes
@@ -207,15 +193,8 @@ class Predictor(object):
         """
         return self.latest_iteration.get(genotype)
 
-    def iterate(self,
-            label,
-            genotypes,
-            phenotypes,
-            stdeviations,
-            nsamples,
-            **options
-        ):
-        """
+    def iterate(self, label, genotypes, phenotypes, stdeviations, nsamples, **options):
+        """Construct a new iteration of the model.
         """
         for iteration in self.iterations.values():
             iteration.Group.attrs["latest"] = 0
@@ -223,8 +202,11 @@ class Predictor(object):
         Iteration = _Iteration(self, label, genotypes, phenotypes, stdeviations)
         # Make all other iterations have a latest attribute set to False (0)
         self.iterations[label] = Iteration
+        # Run through fitting pipeline
         Iteration.sample(nsamples)
         Iteration.bin(**self.options_genotypes)
+        Iteration.fit()
+        Iteration.predict()
         self.latest_iteration = Iteration
 
     def bin(self, nbins):
@@ -243,9 +225,48 @@ class Predictor(object):
     def fit(self):
         """Fit the genotypes of the latest iteration.
         """
-        pass
+        Iteration = self.latest_iteration
+        Iteration.fit()
+
+    def predict(self):
+        """Get a set of posterior predictions from the latest iteration"""
+        Iteration = self.latest_iteration
+        Iteration.predict()
+
+    def get_priors(self):
+        """"""
+        # Check if an iteration exists
+        if self.latest_iteration is None:
+            return self.genotypes, self.phenotypes, self.stdeviations
+        else:
+            Iteration = self.latest_iteration
+            #prior_genotypes = Iteration.Posteriors.genotypes
+            #prior_phenotypes = Iteration.Posteriors.phenotypes
+            #prior_stdeviations = Iteration.Posteriors.stdeviations
+            prior_genotypes = _np.concatenate([Iteration.Priors.genotypes, Iteration.Posteriors.genotypes])
+            prior_phenotypes = _np.concatenate([Iteration.Priors.phenotypes, Iteration.Posteriors.phenotypes])
+            prior_stdeviations = _np.concatenate([Iteration.Priors.stdeviations, Iteration.Posteriors.stdeviations])
+            return prior_genotypes, prior_phenotypes, prior_stdeviations
 
     def learn(self, **options):
         """Automagically learn from data and predict phenotypes.
         """
         self.options.update(**options)
+        # Get previous posteriors if they exist.
+        if hasattr(self.latest_iteration, "Posteriors"):
+            new_predictions = self.latest_iteration.Posteriors.length
+        else:
+            new_predictions = len(self.genotypes)
+        # Keep iterating the model until no predictions exist
+        while new_predictions > 0:
+            # Get priors for a new iteration
+            prior_genotypes, prior_phenotypes, prior_stdeviations = self.get_priors()
+            # Create a new iteration with new priors
+            self.iterate(self._suggest_iteration_label(), prior_genotypes, prior_phenotypes,
+                prior_stdeviations, 1000)
+            # Track number of new posteriors found.
+            new_predictions = self.latest_iteration.Posteriors.length
+        # Gather the results and save them as separate datasets
+        self.Results = _Results(self, *self.get_priors())
+        # Print when finished.
+        print("Finished: " + str(self.latest_iteration.Priors.length) + " known genotypes")

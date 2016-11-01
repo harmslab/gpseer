@@ -1,5 +1,9 @@
+import seqspace as _seqspace
+import numpy as _np
 from .model import Model as _Model
 from .genotype import Genotype as _Genotype
+from .bayes import (Priors as _Priors,
+                    Posteriors as _Posteriors)
 
 class Iteration(object):
     """An object/API that manages a single iteration of predictions for a given
@@ -8,36 +12,37 @@ class Iteration(object):
     def __init__(self,
             Predictor,
             label,
-            known_genotypes,
-            known_phenotypes,
-            known_stdeviations,
+            prior_genotypes,
+            prior_phenotypes,
+            prior_stdeviations,
         ):
         # Attach to main API
         self.Predictor = Predictor
+        # Create a genotype_phenotype map.
+        self.GenotypePhenotypeMap = _seqspace.GenotypePhenotypeMap(prior_genotypes[0],
+            prior_genotypes,
+            prior_phenotypes,
+            stdeviations=prior_stdeviations)
         # Get name of iteration.
         self.label = label
         self.Group = self.Predictor.File.create_group(self.label)
         self.Group.attrs["latest"] = 1
-
         # Initialize datasets
-        self.genotypes = known_genotypes
-        self.phenotypes = known_phenotypes
-        self.stdeviations = known_stdeviations
-
+        self.Priors = _Priors(self, prior_genotypes, prior_phenotypes, prior_stdeviations)
         # Create subgroups
         self.model_group = self.Group.create_group("Models")
         self.genotype_group = self.Group.create_group("Genotypes")
-
         # Initialize models
         self.Models = {}
-        for genotype in self.genotypes:
+        for genotype in self.Priors.genotypes:
             model = _Model(self, genotype, **self.Predictor.options_model)
             self.Models[genotype] = model
-
         # Initialize genotypes
         self.Genotypes = {}
-        for i, genotype in enumerate(self.GenotypePhenotypeMap.complete_genotypes):
-            geno = _Genotype(self, genotype)
+        # Genotypes to fit
+        for index, genotype in enumerate(self.GenotypePhenotypeMap.missing_genotypes):
+            # Index is shifted by the amount of known genotypes
+            geno = _Genotype(self, genotype, self.GenotypePhenotypeMap.n + index)
             self.Genotypes[genotype] = geno
 
     @classmethod
@@ -48,10 +53,13 @@ class Iteration(object):
         self.Predictor = Predictor
         self.label = Group.name.split("/")[-1]
         self.Group = Group
-        # Set the Datasets in this group
-        self._genotypes = self.Group["genotypes"]
-        self._phenotypes = self.Group["phenotypes"]
-        self._stdeviations = self.Group["stdeviations"]
+        # Read prior
+        self.Priors = _Priors.read(self.Group["Priors"])
+        # Create a genotype_phenotype map.
+        self.GenotypePhenotypeMap = GenotypePhenotypeMap(self.Priors.genotypes[0],
+            self.Priors.genotypes,
+            self.Priors.phenotypes,
+            errors=self.Priors.stdeviations)
         # Get sub groups
         self.model_group = self.Group["Models"]
         self.genotype_group = self.Group["Genotypes"]
@@ -63,41 +71,6 @@ class Iteration(object):
         for key, genotype in self.genotype_group.items():
             self.Genotypes[key] = _Genotype.read(self, genotype)
         return self
-
-    @property
-    def GenotypePhenotypeMap(self):
-        return self.Predictor.GenotypePhenotypeMap
-
-    @property
-    def genotypes(self):
-        """Convert the genotype to an array of strings"""
-        return self._genotypes.value.astype(str)
-
-    @property
-    def phenotypes(self):
-        """Get phenotypes as numpy array in memory"""
-        return self._phenotypes.value
-
-    @property
-    def stdeviations(self):
-        """Get phenotypes as numpy array in memory"""
-        return self._stdeviations.value
-
-    @genotypes.setter
-    def genotypes(self, genotypes):
-        """"""
-        self._genotypes = self.Group.create_dataset("genotypes",
-            data=genotypes.astype("S" + str(len(genotypes[0]))))
-
-    @phenotypes.setter
-    def phenotypes(self, phenotypes):
-        """Writes phenotypes to datasets"""
-        self._phenotypes = self.Group.create_dataset("phenotypes", data=phenotypes)
-
-    @stdeviations.setter
-    def stdeviations(self, stdeviations):
-        """Writes phenotypes to datasets"""
-        self._stdeviations = self.Group.create_dataset("stdeviations", data=stdeviations)
 
     def get(self, genotype):
         """Get the data for a given genotype.
@@ -130,3 +103,31 @@ class Iteration(object):
         """Add samples to a specific model."""
         modelx = self.Models[model_label]
         modelx.sample(nsamples)
+
+    def fit(self):
+        """Fits each prediction spectra with a multiple gaussian peaks
+        """
+        for key, Genotype in self.Genotypes.items():
+            Genotype.fit()
+
+    def predict(self):
+        """Will attempt to create a set of posteriors from the unobserved genotypes.
+        If a distribution is underdetermined (multiple peaks), it will skip that
+        genotype and move on. The list of posteriors at the end represent the
+        information gain from the model.
+        """
+        post_genotypes = []
+        post_phenotypes = []
+        post_stdeviations = []
+        for key, Genotype in self.Genotypes.items():
+            if Genotype.npeaks == 1:
+                peak = Genotype.peaks[0]
+                post_genotypes.append(key)
+                post_phenotypes.append(peak[0])
+                post_stdeviations.append(peak[2])
+        # Set up numpy arrays
+        self.Posteriors = _Posteriors(self,
+            _np.array(post_genotypes),
+            _np.array(post_phenotypes),
+            _np.array(post_stdeviations)
+        )
