@@ -27,7 +27,6 @@ def pearson(y_obs, y_pred):
 
 def lorentz(x, center, width):
     """A Lorentz distribution for fitting peaks.
-
     Parameters
     ----------
     x : numpy.array
@@ -36,7 +35,6 @@ def lorentz(x, center, width):
         the center of the distribution
     width : float
         full width at half maximum.
-
     Returns
     -------
     distribution : numpy array
@@ -45,9 +43,8 @@ def lorentz(x, center, width):
     distribution = (1 / np.pi) * (0.5 * width) / ((x - center)**2 + (0.5*width)**2)
     return distribution
 
-def gaussian(x, amp, center, width):
+def gaussian(x, center, amp, width):
     """A Gaussian distribution for fitting peaks.
-
     Parameters
     ----------
     x : numpy.array
@@ -56,7 +53,6 @@ def gaussian(x, amp, center, width):
         the center of the distribution
     width : float
         full width at half maximum.
-
     Returns
     -------
     distribution : numpy array
@@ -67,7 +63,6 @@ def gaussian(x, amp, center, width):
 
 def multigaussian(x, *args):
     """Construct the sum of multiple distributions.
-
     Parameters
     ----------
     x : numpy.array
@@ -81,16 +76,15 @@ def multigaussian(x, *args):
     npeaks = int(len(args) / 3)
     distribution = np.zeros(len(x))
     for i in range(0, len(args), 3):
-        amp = args[i]
-        center = args[i+1]
-        widths = args[i+2]
-        distribution += gaussian(x, amp, center, widths)
+        center = args[i]
+        amp = args[i+1]
+        width = args[i+2]
+        distribution += gaussian(x, center, amp, width)
     return distribution
 
 def fit_peaks(xdata, ydata, widths=np.arange(1,100)):
     """Find peaks in a dataset using continuous wave transform and fit with
     distribution function.
-
     Parameters
     ----------
     xdata : array
@@ -100,11 +94,10 @@ def fit_peaks(xdata, ydata, widths=np.arange(1,100)):
     widths :
         1-D array of widths to use for calculating the CWT matrix. In general,
         this range should cover the expected width of peaks of interest.
-
     Returns
     -------
-    peaks : array
-        list of parameters
+    peaks : 2d-array
+        Each row is the [center, amplitude, and width] of a single gaussian peak.
     """
     # Find peaks using continuous wave tranform
     indices = find_peaks_cwt(ydata, widths=widths)
@@ -120,20 +113,22 @@ def fit_peaks(xdata, ydata, widths=np.arange(1,100)):
             # Construct parameters for model with guesses
             p0 = np.ones(npeaks*3) * 0.001 * 10**attempts
             for i in range(npeaks):
-                p0[3*i] = ydata[indices[i]]
-                p0[3*i+1] = xdata[indices[i]]
+                p0[3*i] = xdata[indices[i]]
+                p0[3*i+1] = ydata[indices[i]]
             # Fit the data with multiple peaks
             popt, pcov = curve_fit(multigaussian, xdata, ydata, p0=p0)
             score = pearson(ydata, multigaussian(xdata, *popt))
+            if score < 0.9:
+                raise RuntimeError
             finished = True
         except RuntimeError:
             attempts += 1
-
     # If the last loop didn't finish, raise an error
     if finished is False:
-        raise RuntimeError("""Optimal parameters not found.""")
-    # Return parameters
-    peaks = []
-    for i in range(0,len(popt),3):
-        peaks.append((popt[i], popt[i+1], popt[i+2]))
-    return peaks
+        return []
+    else:
+        # Return parameters
+        peaks = np.empty((npeaks, 3), dtype=float)
+        for i in range(0, npeaks):
+            peaks[i, :] = np.array([popt[3*i], popt[3*i+1], popt[3*i+2]])
+        return peaks
