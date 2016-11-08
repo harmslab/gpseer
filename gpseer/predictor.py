@@ -1,3 +1,4 @@
+import os as _os
 import h5py as _h5py
 import matplotlib.pyplot as _plt
 import numpy as _np
@@ -25,6 +26,8 @@ class Predictor(object):
             overwrite=False,
             **options
         ):
+        if overwrite:
+            _os.remove(fname)
         # Construct
         self.__construct__(**options)
         # Create an HDF5 for predictor class
@@ -85,8 +88,10 @@ class Predictor(object):
         return self
 
     @classmethod
-    def from_gpm(cls, space, fname="predictor.h5", **options):
+    def from_gpm(cls, space, fname="predictor.h5", overwrite=False, **options):
         """"""
+        if overwrite:
+            _os.remove(fname)
         self = cls.__new__(cls)
         # Load all options from the genotype-phenotype map.
         opt1 = dict(

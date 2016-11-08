@@ -34,7 +34,7 @@ class Iteration(object):
         self.genotype_group = self.Group.create_group("Genotypes")
         # Initialize models
         self.Models = {}
-        for genotype in self.Priors.genotypes:
+        for genotype in self.GenotypePhenotypeMap.complete_genotypes:
             model = _Model(self, genotype, **self.Predictor.options_model)
             self.Models[genotype] = model
         # Initialize genotypes
