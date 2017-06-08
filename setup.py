@@ -13,7 +13,7 @@ setup(name='gpseer',
       install_requires=[
           'numpy',
           'h5py',
-          'seqspace',
+          'gpmap',
           'epistasis'
       ],
       zip_safe=False)
