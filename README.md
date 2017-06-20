@@ -6,13 +6,14 @@ Still under development.
 
 The base class, `Predictor`, fits a high-order epistasis model (using Linear Regression) to an incomplete genotype-phenotype map. Due to the growing size of experimental genotype-phenotype maps and the necessity to bootstrap these maps, we've built GPSeer on top of `h5py`. This enables us to manage and search large datasets (on the order of Terabytes) efficiently.
 
-GPSeer uses the Python APIs, SeqSpace and Epistasis, to draw out as much information as possible from a measured genotype-phenotype map, and then makes predictions about unknown genotype-phenotypes.
+GPSeer uses the Python APIs, GPMap and Epistasis, to draw out as much information as possible from a measured genotype-phenotype map, and then makes predictions about unknown genotype-phenotypes.
 
-# Basic Usage
+## Basic Example
 
 ```python
-from seqspace import GenotypePhenotypeMap
-from epistasis.models import LinearEpistasisRegression
+from gpmap import GenotypePhenotypeMap
+from epistasis.models import EpistasisMixedRegression
+from epistasis.sampling import BayesianSampler
 from gpseer import Predictor
 
 # Read in data
@@ -20,24 +21,32 @@ gpm = GenotypePhenotypeMap.from_json("example.json")
 
 # Initialize the predictor
 predictor = Predictor(gpm,
-    LinearEpistasisRegression,  # Type of epistasis model
-    order=4                     # Order of epistasis model (optional argument)
+    Model= EpistasisMixedRegression,    # Type of epistasis model
+    Sampler=BayesianSampler,            # Sampling method
+    order=2                             # Order of epistasis model (optional argument)
 )
 
+# Prepare the predictor models
+predictor.setup()
+
+# Fit the ML for all models
+predictor.fit(lmbda=1, A=1, B=0)
+
+# Sent MCMC walkers out 1000 sets and sample the likelihood of each model.
+predictor.sample(nsteps=1000)
+
 # Sample from a given references state
-reference= "0000"
-predictor.sample_to_convergence(reference=reference)
-print(predictor.genotypes.g0000.samples())
+predictor.sample_posterior("0000")
 ```
 
-# Install
+## Install
 
 ```
 pip install -e .
 ```
 
-# Dependencies
+## Dependencies
 
-1. seqspace : Python API for analyzing genotype phenotype maps.
+1. gpmap : Python API for analyzing genotype phenotype maps.
 2. epistasis :  
-3. h5py:
+3. h5py :
