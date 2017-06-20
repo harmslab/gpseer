@@ -74,7 +74,6 @@ class Predictor(object):
 
     """
     def __init__(self, gpm, Model, Sampler=BayesianSampler, db_dir=None, **kwargs):
-
         # Set parameters
         self.gpm = gpm
         self.Model = Model
@@ -87,18 +86,32 @@ class Predictor(object):
         else:
             self._db_dir = db_dir
 
-    def setup(self):
-        """Setup the predictor class."""
         # Create a folder for the database.
         if not _os.path.exists(self._db_dir):
             _os.makedirs(self._db_dir)
 
+    def setup(self):
+        """Setup the predictor class."""
+        # Write out Model class
+        with open("gpm.pickle", "wb") as f:
+            _pickle.dump(self.gpm, f)
+
+        with open("Model.pickle", "wb") as f:
+            _pickle.dump(self.Model, f)
+
+        # Write out Sampler class
+        with open("Sampler.pickle", "wb") as f:
+            _pickle.dump(self.Sampler, f)
+
+        with open("model_kwargs.json", "w") as f:
+            _json.dump(self.model_kwargs, f)
+
         # Create a folder for posterior
-        post_path = _os.join(self._db_dir, "models")
+        post_path = _os.path.join(self._db_dir, "models")
         _os.makedirs(post_path)
 
         # Create a folder for posterior
-        post_path = _os.join(self._db_dir, "posterior")
+        post_path = _os.path.join(self._db_dir, "posterior")
         _os.makedirs(post_path)
 
         # Pull full genotype list to pass a references for models.
@@ -165,6 +178,9 @@ class Predictor(object):
         # Setup ready.
         self.ready = True
 
+        # Return the class.
+        return self
+
     def get_model_sampler(self, reference):
         """Given a reference state, return a likelihood calculator."""
         # Extremely inefficient...
@@ -176,14 +192,14 @@ class Predictor(object):
             model_type="local",
             **self.model_kwargs)
         # Initialize a sampler. Sampler writes models and samples to disk.
-        sampler = self.Sampler(model, db_dir=self.paths[reference], n_jobs=self.n_jobs)
+        sampler = self.Sampler(model, db_dir=self.paths[reference])
         # Return sampler
         return sampler
 
     def fit(self, **kwargs):
         """Estimate the maximum likelihood models for all reference states."""
         for ref in self.references:
-            self.models[ref].model.fit(**kwargs)
+            self.models[ref].fit(**kwargs)
 
     def get_prior(self, genotype):
         """"""
@@ -198,13 +214,15 @@ class Predictor(object):
     def sample_posterior(self, genotype, nmax=1000):
         """Use hamming distance to re-weight models"""
         # Get reference
+        # priors = {ref: _np.exp(-hamming_distance(genotype, ref)) for ref in self.references}
         denom = sum(priors.values())
         posterior = []
+        nn = len(self.gpm.complete_genotypes)
         for ref, prior in priors.items():
             # Calculate the number of samples to draw
             # from this reference state
-            weight = prior / denom
-            nsamples = int(weight * nmax)
+            # weight = prior / denom
+            nsamples = int(1/nn * nmax)
             # Draw samples from likelihood function
             if nsamples > 0:
                 samples = self.models[ref].predict_from_random_samples(nsamples)
