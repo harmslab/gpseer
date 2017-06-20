@@ -1,9 +1,11 @@
 # External dependencies
+import pickle as _pickle
 import os as _os
 import h5py as _h5py
 import numpy as _np
 import json as _json
 import copy as _copy
+import shutil as _shutil
 import multiprocessing as _mp
 
 # Epistasis imports
@@ -14,31 +16,70 @@ from gpmap.utils import hamming_distance
 from . import utils
 
 class Predictor(object):
-    """Genotype-phenotype map predictor.
+    """Sample an Epistasis Model and build predictions for sparsely
+    sampled genotype-phenotype maps.
 
-    Construct
+    How it works
+    ------------
+    1. Creates a database directory to store model samples.
+    2. Within the database directory, create a Sampler for each epistasis model
+        to sample.
+    3. Initialize a Sampler Object, creating a directory for that model, pickling
+        the model into that directory, and starting an HDF5 file to store samples.
+    4. One initialized, call `fit` to create a ML solution for all models. This
+        will be a starting point for the Sampler.
+    5. Call `sample` to sample all models. This may take a while.
+    6. Call `sample_posterior` to built a posterior distribution for a selected
+        genotype. This will return a Posterior object for the given genotype.
 
-    Two step MCMC Bayesian algorithm.
+    Example
+    -------
+    The resulting predictor database will look something like:
+    ```
+    predictor/
+        Model.pickle
+        Sampler.pickle
+        model_kwargs.json
+        models/
+            genotype-1/
+                model.pickle
+                samples.h5
+            genotype-2/
+                model.pickle
+                samples.h5
+            .
+            .
+            .
+        posteriors/
+            genotype-1.h5
+            genotype-2.h5
+            .
+            .
+            .
 
-    1. Construct a set of epistasis models from a single dataset and use
-        MCMC algorithm to approximate the full posterior probabilities for all
-        coefficients in the model.
+    ```
+
+    Sampling protocol
+    -----------------
+    The predictor iteratively builds posterior distributions for each genotype by:
+
+    1. sampling the likelihood functions of many epistasis models
+    2. and weighting the final distributions by a prior.
+
+    The prior states that models whose reference state is closer to the genotype
+    of interest will best approximate the genotype.
 
     Parameters
     ----------
+
     """
-    def __init__(self, gpm, model_class,
-        sampler_class=BayesianSampler,
-        db_dir=None,
-        n_jobs=1,
-        **kwargs):
+    def __init__(self, gpm, Model, Sampler=BayesianSampler, db_dir=None, **kwargs):
 
         # Set parameters
         self.gpm = gpm
-        self.model_class = model_class
-        self.sampler_class = sampler_class
+        self.Model = Model
+        self.Sampler = Sampler
         self.model_kwargs = kwargs
-        self.n_jobs = n_jobs
 
         # Set up the sampling database
         if db_dir is None:
@@ -46,21 +87,83 @@ class Predictor(object):
         else:
             self._db_dir = db_dir
 
+    def setup(self):
+        """Setup the predictor class."""
         # Create a folder for the database.
         if not _os.path.exists(self._db_dir):
             _os.makedirs(self._db_dir)
+
+        # Create a folder for posterior
+        post_path = _os.join(self._db_dir, "models")
+        _os.makedirs(post_path)
+
+        # Create a folder for posterior
+        post_path = _os.join(self._db_dir, "posterior")
+        _os.makedirs(post_path)
 
         # Pull full genotype list to pass a references for models.
         self.references = list(self.gpm.complete_genotypes)
 
         # Store the location of models
-        self.paths = {reference : _os.path.join(self._db_dir, reference)
+        self.paths = {reference : _os.path.join(self._db_dir, "models", reference)
             for reference in self.references}
 
         # Store models
         self.models = {reference : self.get_model_sampler(reference)
             for reference in self.references}
 
+        # Set the predictor class as ready
+        self.ready = True
+
+    def update(self, gpm=None, Model=None, Sampler=None, purge=False):
+        """Update items in the predictor."""
+        if gpm is not None:
+            self.gpm = gpm
+        if Model is not None:
+            self.Model = Model
+        if Sampler is not None:
+            self.Sampler = Sampler
+        if purge:
+            # Delete models directory
+            path = _os.path.join(self.db_dir, "models")
+            shutil.rmtree(path)
+            # Create an empty directory
+            _os.makedirs(self._db_dir)
+
+    @classmethod
+    def load(cls, db_dir):
+        """Load a Predictor database already on disk."""
+        # Get the genotype-phenotype map
+        with open("gpm.pickle", "rb") as f:
+            gpm = _pickle.load(f)
+
+        # Get the Epistasis model class
+        with open("Model.pickle", "rb") as f:
+            Model = _pickle.load(f)
+
+        # Get the Sampler object.
+        with open("Sampler.pickle", "rb") as f:
+            Sampler = _pickle.load(f)
+
+        with open("model_kwargs.json", "r") as f:
+            model_kwargs = _json.load(f)
+
+        # Initialize the predictor
+        self = cls(gpm, Model=Model, Sampler=Sampler, db_dir=db_dir)
+
+        # Construct the model references.
+        self.references = list(self.gpm.complete_genotypes)
+
+        # Store the path to each model
+        self.paths = {reference : _os.path.join(self._db_dir, "models", reference)
+            for reference in self.references}
+
+        # Load the h5 file for each model previously sampled.
+        self.models = {reference : self.Sampler.from_db(self.paths[reference])
+            for reference in self.references}
+
+        # Setup ready.
+        self.ready = True
 
     def get_model_sampler(self, reference):
         """Given a reference state, return a likelihood calculator."""
@@ -69,11 +172,11 @@ class Predictor(object):
         # Set the reference state for the binary representation of the map.
         gpm.binary.wildtype = reference
         # Initialize a model
-        model = self.model_class.from_gpm(gpm,
+        model = self.Model.from_gpm(gpm,
             model_type="local",
             **self.model_kwargs)
         # Initialize a sampler. Sampler writes models and samples to disk.
-        sampler = self.sampler_class(model, db_dir=self.paths[reference], n_jobs=self.n_jobs)
+        sampler = self.Sampler(model, db_dir=self.paths[reference], n_jobs=self.n_jobs)
         # Return sampler
         return sampler
 
@@ -82,15 +185,19 @@ class Predictor(object):
         for ref in self.references:
             self.models[ref].model.fit(**kwargs)
 
+    def get_prior(self, genotype):
+        """"""
+        priors = {ref: _np.exp(-hamming_distance(genotype, ref)) for ref in self.references}
+        return priors
+
     def sample(self, n):
         """Create N samples of the likelihood function."""
         for sampler in self.models.values():
             sampler.add_samples(n)
 
-    def predict(self, genotype, nmax=1000):
+    def sample_posterior(self, genotype, nmax=1000):
         """Use hamming distance to re-weight models"""
         # Get reference
-        priors = {ref: _np.exp(-hamming_distance(genotype, ref)) for ref in self.references}
         denom = sum(priors.values())
         posterior = []
         for ref, prior in priors.items():
