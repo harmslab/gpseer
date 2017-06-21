@@ -93,17 +93,17 @@ class Predictor(object):
     def setup(self):
         """Setup the predictor class."""
         # Write out Model class
-        with open("gpm.pickle", "wb") as f:
+        with open(_os.path.join(self._db_dir, "gpm.pickle"), "wb") as f:
             _pickle.dump(self.gpm, f)
 
-        with open("Model.pickle", "wb") as f:
+        with open(_os.path.join(self._db_dir, "Model.pickle"), "wb") as f:
             _pickle.dump(self.Model, f)
 
         # Write out Sampler class
-        with open("Sampler.pickle", "wb") as f:
+        with open(_os.path.join(self._db_dir, "Sampler.pickle"), "wb") as f:
             _pickle.dump(self.Sampler, f)
 
-        with open("model_kwargs.json", "w") as f:
+        with open(_os.path.join(self._db_dir, "model_kwargs.json"), "w") as f:
             _json.dump(self.model_kwargs, f)
 
         # Create a folder for posterior
@@ -147,18 +147,18 @@ class Predictor(object):
     def load(cls, db_dir):
         """Load a Predictor database already on disk."""
         # Get the genotype-phenotype map
-        with open("gpm.pickle", "rb") as f:
+        with open(_os.path.join(db_dir, "gpm.pickle"), "rb") as f:
             gpm = _pickle.load(f)
 
         # Get the Epistasis model class
-        with open("Model.pickle", "rb") as f:
+        with open(_os.path.join(db_dir, "Model.pickle"), "rb") as f:
             Model = _pickle.load(f)
 
         # Get the Sampler object.
-        with open("Sampler.pickle", "rb") as f:
+        with open(_os.path.join(db_dir, "Sampler.pickle"), "rb") as f:
             Sampler = _pickle.load(f)
 
-        with open("model_kwargs.json", "r") as f:
+        with open(_os.path.join(db_dir, "model_kwargs.json"), "r") as f:
             model_kwargs = _json.load(f)
 
         # Initialize the predictor
