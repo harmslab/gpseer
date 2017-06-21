@@ -215,10 +215,10 @@ class Predictor(object):
         """Use hamming distance to re-weight models"""
         # Get reference
         # priors = {ref: _np.exp(-hamming_distance(genotype, ref)) for ref in self.references}
-        denom = sum(priors.values())
+        #denom = sum(priors.values())
         posterior = []
         nn = len(self.gpm.complete_genotypes)
-        for ref, prior in priors.items():
+        for ref in self.references:
             # Calculate the number of samples to draw
             # from this reference state
             # weight = prior / denom
