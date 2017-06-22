@@ -9,7 +9,7 @@ import shutil as _shutil
 import multiprocessing as _mp
 
 # Epistasis imports
-from epistasis.sampling import BayesianSampler
+from .sampling import BayesianPredictionSampler
 from gpmap.utils import hamming_distance
 
 # Local imports
@@ -73,7 +73,7 @@ class Predictor(object):
     ----------
 
     """
-    def __init__(self, gpm, Model, Sampler=BayesianSampler, db_dir=None, **kwargs):
+    def __init__(self, gpm, Model, Sampler=BayesianPredictionSampler, db_dir=None, **kwargs):
         # Set parameters
         self.gpm = gpm
         self.Model = Model
@@ -215,7 +215,6 @@ class Predictor(object):
             # Predict the samples
             sampler.predict(samples)
 
-            
 
     def sample_posteriors(self):
         """"""
