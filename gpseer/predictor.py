@@ -206,12 +206,34 @@ class Predictor(object):
         priors = {ref: _np.exp(-hamming_distance(genotype, ref)) for ref in self.references}
         return priors
 
-    def sample(self, n):
+    def sample_models(self, n):
         """Create N samples of the likelihood function."""
         for sampler in self.models.values():
-            sampler.add_samples(n)
+            # Add samples to models
+            samples = sampler.add_samples(n)
 
-    def sample_posterior(self, genotype, nmax=1000):
+            # Predict the samples
+            sampler.predict(samples)
+
+            
+
+    def sample_posteriors(self):
+        """"""
+        for sampler in self.models.values():
+            output = sampler.predict(self.coef.values)
+
+
+
+
+
+
+
+
+
+
+
+
+
         """Use hamming distance to re-weight models"""
         # Get reference
         # priors = {ref: _np.exp(-hamming_distance(genotype, ref)) for ref in self.references}
