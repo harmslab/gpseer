@@ -10,6 +10,7 @@ import multiprocessing as _mp
 
 # Epistasis imports
 from .likelihood import LikelihoodDB
+from .posterior import PosteriorDB
 from gpmap.utils import hamming_distance
 
 # Local imports
@@ -51,16 +52,18 @@ class Predictor(object):
         models/
             genotype-1/
                 model.pickle
-                samples.h5
+                samples-db.h5
             genotype-2/
                 model.pickle
-                samples.h5
+                samples-db.h5
             .
             .
             .
         posteriors/
-            genotype-1.h5
+            genotype-1/
+                posterior-db.h5
             genotype-2.h5
+                posterior-db.h5
             .
             .
             .
@@ -90,7 +93,6 @@ class Predictor(object):
         self.gpm = gpm
         self.Model = Model
         self.Likelihood = LikelihoodDB
-        self.model_kwargs = kwargs
 
         # Set up the sampling database
         if db_dir is None:
@@ -102,8 +104,10 @@ class Predictor(object):
         if not _os.path.exists(self._db_dir):
             _os.makedirs(self._db_dir)
 
-    def setup(self):
+    def setup(self, **kwargs):
         """Setup the predictor class."""
+        self.model_kwargs = kwargs
+
         # Write out Model class
         with open(_os.path.join(self._db_dir, "gpm.pickle"), "wb") as f:
             _pickle.dump(self.gpm, f)
@@ -114,40 +118,43 @@ class Predictor(object):
         with open(_os.path.join(self._db_dir, "model_kwargs.json"), "w") as f:
             _json.dump(self.model_kwargs, f)
 
-        # Create a folder for posterior
-        post_path = _os.path.join(self._db_dir, "models")
-        _os.makedirs(post_path)
-
-        # Create a folder for posterior
-        post_path = _os.path.join(self._db_dir, "posterior")
-        _os.makedirs(post_path)
-
         # Pull full genotype list to pass a references for models.
         self.references = list(self.gpm.complete_genotypes)
 
+        # -----------------------------------------------------------
+        # Prepare Likelihood databases
+        # -----------------------------------------------------------
+
+        # Create a folder for posterior
+        model_path = _os.path.join(self._db_dir, "models")
+        _os.makedirs(model_path)
+
         # Store the location of models
-        self.paths = {reference : _os.path.join(self._db_dir, "models", reference)
+        self.model_paths = {reference : _os.path.join(model_path, reference)
             for reference in self.references}
 
         # Store models
         self.models = {reference : self.get_model_likelihood(reference)
             for reference in self.references}
 
+        # -----------------------------------------------------------
+        # Prepare Posterior databases
+        # -----------------------------------------------------------
+
+        # Create a folder for posterior
+        posterior_path = _os.path.join(self._db_dir, "posterior")
+        _os.makedirs(posterior_path)
+
+        # Store the location of models
+        self.posterior_paths = {reference : _os.path.join(posterior_path, reference)
+            for reference in self.references}
+
+        # Store posterior DB
+        self.posteriors = {ref : PosteriorDB(path) for ref, path in self.posterior_paths.items()}
+
         # Set the predictor class as ready
         self.ready = True
-
-    def update(self, gpm=None, Model=None, purge=False):
-        """Update items in the predictor."""
-        if gpm is not None:
-            self.gpm = gpm
-        if Model is not None:
-            self.Model = Model
-        if purge:
-            # Delete models directory
-            path = _os.path.join(self.db_dir, "models")
-            shutil.rmtree(path)
-            # Create an empty directory
-            _os.makedirs(self._db_dir)
+        return self
 
     @classmethod
     def load(cls, db_dir):
@@ -165,17 +172,33 @@ class Predictor(object):
 
         # Initialize the predictor
         self = cls(gpm, Model=Model, db_dir=db_dir)
+        self.model_kwargs = model_kwargs
 
         # Construct the model references.
         self.references = list(self.gpm.complete_genotypes)
 
+        # -----------------------------------------------------------
+        # Prepare Likelihood databases
+        # -----------------------------------------------------------
+
         # Store the path to each model
-        self.paths = {reference : _os.path.join(self._db_dir, "models", reference)
+        self.model_paths = {reference : _os.path.join(self._db_dir, "models", reference)
             for reference in self.references}
 
         # Load the h5 file for each model previously sampled.
-        self.models = {reference : self.Likelihood.from_db(self.paths[reference])
+        self.models = {reference : self.Likelihood.from_db(self.model_paths[reference])
             for reference in self.references}
+
+        # -----------------------------------------------------------
+        # Prepare Posterior databases
+        # -----------------------------------------------------------
+
+        # Store the location of models
+        self.posterior_paths = {reference : _os.path.join(self._db_dir, "posteriors", reference)
+            for reference in self.references}
+
+        # Store posterior DB
+        self.posteriors = {ref : PosteriorDB(path) for ref, path in self.posterior_paths.items()}
 
         # Setup ready.
         self.ready = True
@@ -183,7 +206,7 @@ class Predictor(object):
         # Return the class.
         return self
 
-    def get_model_Likelihood(self, reference):
+    def get_model_likelihood(self, reference):
         """Given a reference state, return a likelihood calculator."""
         # Extremely inefficient...
         gpm = _copy.deepcopy(self.gpm)
@@ -194,7 +217,7 @@ class Predictor(object):
             model_type="local",
             **self.model_kwargs)
         # Initialize a likelihood db. Likelihood writes models and samples to disk.
-        likelihood = self.Likelihood(model, db_dir=self.paths[reference])
+        likelihood = self.Likelihood(model, db_dir=self.model_paths[reference])
         # Return likelihood
         return likelihood
 
@@ -219,48 +242,11 @@ class Predictor(object):
         for likelihood in self.models.values():
             likelihood.add_predictions()
 
-    def get_posterior(self, genotype):
-        """"""
-
-
-
-
     def add_posteriors(self):
         """"""
-#        for g in self.gpm.complete_genotypes:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        """Use hamming distance to re-weight models"""
-        # Get reference
-        # priors = {ref: _np.exp(-hamming_distance(genotype, ref)) for ref in self.references}
-        #denom = sum(priors.values())
-        posterior = []
-        nn = len(self.gpm.complete_genotypes)
         for ref in self.references:
-            # Calculate the number of samples to draw
-            # from this reference state
-            # weight = prior / denom
-            nsamples = int(1/nn * nmax)
-            # Draw samples from likelihood function
-            if nsamples > 0:
-                samples = self.models[ref].predict_from_random_samples(nsamples)
-                # Get mapping for this model
-                mapping = {g: i for i, g in enumerate(self.models[ref].model.gpm.complete_genotypes)}
-                index = mapping[genotype]
-                # Sort samples
-                posterior += list(samples[:, index])
-
-        return _np.array(posterior)
+            # Sort predictins from likelihoods
+            for likelihood in self.models.values():
+                mapping = likelihood.prediction_map
+                predictions = likelihood.predictions[:, mapping[ref]]
+                post.add_model_posteriors(ref, predictions)

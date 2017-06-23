@@ -36,6 +36,13 @@ class LikelihoodDB(BayesianSampler):
             self.File.create_dataset("predictions", (0,0), maxshape=(None,None), compression="gzip")
 
     @property
+    def prediction_map(self):
+        """Genotype mapped to their index in the prediction database."""
+        keys = self.model.gpm.complete_genotypes
+        values = range(len(keys))
+        return dict(zip(keys, values))
+
+    @property
     def predictions(self):
         """Samples of epistatic coefficients. Rows are samples, Columns are coefs."""
         return self.File["predictions"]
