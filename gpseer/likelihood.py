@@ -7,11 +7,29 @@ import numpy as np
 from epistasis.sampling.base import Sampler
 from epistasis.sampling import BayesianSampler, BootstrapSampler
 
-class PredictionSampler(Sampler):
-    """Base prediction sampling class"""
+class LikelihoodDB(BayesianSampler):
+    """API for sampling the likelihood of an epistasis model and inferring
+    phenotypes from its likelihood.
+
+    Parameters
+    ----------
+    model :
+        Epistasis model to run a bootstrap calculation.
+    db_dir : str (default=None)
+        Name a the database directory for storing samples.
+
+    Attributes
+    ----------
+    coefs : array
+        samples for the coefs in the epistasis model.
+    scores : array
+        Log probabilities for each sample.
+    best_coefs : array
+        most probable model.
+    """
     def __init__(self, model, db_dir=None):
         # Initialize sampler
-        super(PredictionSampler, self).__init__(model, db_dir=db_dir)
+        super(LikelihoodDB, self).__init__(model, db_dir=db_dir)
 
         # Add database
         if "predictions" not in self.File:
@@ -106,57 +124,3 @@ class PredictionSampler(Sampler):
         for i, index in enumerate(model_indices[:n]):
             samples[i,:] = self.coefs[index, :]
         return self.predict(samples=samples)
-
-class BayesianPredictionSampler(PredictionSampler, BayesianSampler):
-    """Object for estimating the uncertainty in an epistasis model's phenotype
-    predictions using a Bayesian approach. This object samples from
-    the experimental uncertainty in the phenotypes to estimate confidence
-    intervals for model parameters and infers prediction probability distributions
-    from the model using Bayes Theorem:
-
-    .. math::
-        P(H|E) = \\frac{ P(E|H) \cdot P(H) }{ P(E) }
-
-    This reads: "the probability of epistasis model :math:`H` given the data
-    :math:`E` is equal to the probability of the data given the model times the
-    probability of the model."
-
-    Parameters
-    ----------
-    model :
-        Epistasis model to run a bootstrap calculation.
-    db_dir : str (default=None)
-        Name a the database directory for storing samples.
-
-    Attributes
-    ----------
-    coefs : array
-        samples for the coefs in the epistasis model.
-    scores : array
-        Log probabilities for each sample.
-    best_coefs : array
-        most probable model.
-    """
-
-class BootstrapPredictionSampler(PredictionSampler, Bootstrap):
-    """A sampling class to estimate the uncertainties in an epistasis model's
-    coefficients using a bootstrapping method. This object samples from
-    the experimental uncertainty in the phenotypes to estimate confidence
-    intervals for the coefficients in an epistasis model.
-
-    Parameters
-    ----------
-    model :
-        Epistasis model to run a bootstrap calculation.
-    db_dir : str (default=None)
-        Name a the database directory for storing samples.
-
-    Attributes
-    ----------
-    coefs : array
-        samples for the coefs in the epistasis model.
-    scores : array
-        R-squared of each model
-    best_coefs : array
-        Best fit model.
-    """

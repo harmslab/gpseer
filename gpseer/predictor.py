@@ -9,28 +9,37 @@ import shutil as _shutil
 import multiprocessing as _mp
 
 # Epistasis imports
-from .sampling import BayesianPredictionSampler
+from .likelihood import LikelihoodDB
 from gpmap.utils import hamming_distance
 
 # Local imports
 from . import utils
 
 class Predictor(object):
-    """Sample an Epistasis Model and build predictions for sparsely
-    sampled genotype-phenotype maps.
+    """API for sampling a set of epistasis models and inferring phenotypes from
+    the resulting posterior distribution. All likelihood samples are saved in a directory
+    with separate HDF5 database files for each model. Posterior distributions
+    are also stored in separate HDF5 database files. See database architecture below.
 
     How it works
     ------------
     1. Creates a database directory to store model samples.
-    2. Within the database directory, create a Sampler for each epistasis model
+    2. Within the database directory, create a LikelihoodDB for each epistasis model
         to sample.
-    3. Initialize a Sampler Object, creating a directory for that model, pickling
+    3. Initialize a Likelihood Object, creating a directory for that model, pickling
         the model into that directory, and starting an HDF5 file to store samples.
     4. One initialized, call `fit` to create a ML solution for all models. This
-        will be a starting point for the Sampler.
+        will be a starting point for the Likelihood.
     5. Call `sample` to sample all models. This may take a while.
     6. Call `sample_posterior` to built a posterior distribution for a selected
         genotype. This will return a Posterior object for the given genotype.
+
+    .. math::
+        P(H|E) = \\frac{ P(E|H) \cdot P(H) }{ P(E) }
+
+    This reads: "the probability of epistasis model :math:`H` given the data
+    :math:`E` is equal to the probability of the data given the model times the
+    probability of the model."
 
     Example
     -------
@@ -38,7 +47,6 @@ class Predictor(object):
     ```
     predictor/
         Model.pickle
-        Sampler.pickle
         model_kwargs.json
         models/
             genotype-1/
@@ -71,13 +79,17 @@ class Predictor(object):
 
     Parameters
     ----------
+    gpm : GenotypePhenotypeMap object
+        the dataset to predict.
+    Model : model object
+        epistasis model that will be used to fit the genotype-phenotype map.
 
     """
-    def __init__(self, gpm, Model, Sampler=BayesianPredictionSampler, db_dir=None, **kwargs):
+    def __init__(self, gpm, Model, db_dir=None, **kwargs):
         # Set parameters
         self.gpm = gpm
         self.Model = Model
-        self.Sampler = Sampler
+        self.Likelihood = LikelihoodDB
         self.model_kwargs = kwargs
 
         # Set up the sampling database
@@ -99,10 +111,6 @@ class Predictor(object):
         with open(_os.path.join(self._db_dir, "Model.pickle"), "wb") as f:
             _pickle.dump(self.Model, f)
 
-        # Write out Sampler class
-        with open(_os.path.join(self._db_dir, "Sampler.pickle"), "wb") as f:
-            _pickle.dump(self.Sampler, f)
-
         with open(_os.path.join(self._db_dir, "model_kwargs.json"), "w") as f:
             _json.dump(self.model_kwargs, f)
 
@@ -122,20 +130,18 @@ class Predictor(object):
             for reference in self.references}
 
         # Store models
-        self.models = {reference : self.get_model_sampler(reference)
+        self.models = {reference : self.get_model_likelihood(reference)
             for reference in self.references}
 
         # Set the predictor class as ready
         self.ready = True
 
-    def update(self, gpm=None, Model=None, Sampler=None, purge=False):
+    def update(self, gpm=None, Model=None, purge=False):
         """Update items in the predictor."""
         if gpm is not None:
             self.gpm = gpm
         if Model is not None:
             self.Model = Model
-        if Sampler is not None:
-            self.Sampler = Sampler
         if purge:
             # Delete models directory
             path = _os.path.join(self.db_dir, "models")
@@ -154,15 +160,11 @@ class Predictor(object):
         with open(_os.path.join(db_dir, "Model.pickle"), "rb") as f:
             Model = _pickle.load(f)
 
-        # Get the Sampler object.
-        with open(_os.path.join(db_dir, "Sampler.pickle"), "rb") as f:
-            Sampler = _pickle.load(f)
-
         with open(_os.path.join(db_dir, "model_kwargs.json"), "r") as f:
             model_kwargs = _json.load(f)
 
         # Initialize the predictor
-        self = cls(gpm, Model=Model, Sampler=Sampler, db_dir=db_dir)
+        self = cls(gpm, Model=Model, db_dir=db_dir)
 
         # Construct the model references.
         self.references = list(self.gpm.complete_genotypes)
@@ -172,7 +174,7 @@ class Predictor(object):
             for reference in self.references}
 
         # Load the h5 file for each model previously sampled.
-        self.models = {reference : self.Sampler.from_db(self.paths[reference])
+        self.models = {reference : self.Likelihood.from_db(self.paths[reference])
             for reference in self.references}
 
         # Setup ready.
@@ -181,7 +183,7 @@ class Predictor(object):
         # Return the class.
         return self
 
-    def get_model_sampler(self, reference):
+    def get_model_Likelihood(self, reference):
         """Given a reference state, return a likelihood calculator."""
         # Extremely inefficient...
         gpm = _copy.deepcopy(self.gpm)
@@ -191,35 +193,43 @@ class Predictor(object):
         model = self.Model.from_gpm(gpm,
             model_type="local",
             **self.model_kwargs)
-        # Initialize a sampler. Sampler writes models and samples to disk.
-        sampler = self.Sampler(model, db_dir=self.paths[reference])
-        # Return sampler
-        return sampler
+        # Initialize a likelihood db. Likelihood writes models and samples to disk.
+        likelihood = self.Likelihood(model, db_dir=self.paths[reference])
+        # Return likelihood
+        return likelihood
 
-    def fit(self, **kwargs):
-        """Estimate the maximum likelihood models for all reference states."""
-        for ref in self.references:
-            self.models[ref].fit(**kwargs)
-
-    def get_prior(self, genotype):
+    def set_prior(self, genotype):
         """"""
         priors = {ref: _np.exp(-hamming_distance(genotype, ref)) for ref in self.references}
         return priors
 
-    def sample_models(self, n):
-        """Create N samples of the likelihood function."""
-        for sampler in self.models.values():
+    def add_ml_fits(self, **kwargs):
+        """Estimate the maximum likelihood models for all reference states."""
+        for ref in self.references:
+            self.models[ref].fit(**kwargs)
+
+    def add_samples(self, n):
+        """Sample the likelihood function of all models"""
+        for likelihood in self.models.values():
             # Add samples to models
-            samples = sampler.add_samples(n)
+            likelihood.add_samples(n)
 
-            # Predict the samples
-            sampler.predict(samples)
+    def add_predictions(self):
+        """Predict phenotypes from all samples in all the models."""
+        for likelihood in self.models.values():
+            likelihood.add_predictions()
 
-
-    def sample_posteriors(self):
+    def get_posterior(self, genotype):
         """"""
-        for sampler in self.models.values():
-            output = sampler.predict(self.coef.values)
+
+
+
+
+    def add_posteriors(self):
+        """"""
+#        for g in self.gpm.complete_genotypes:
+
+
 
 
 

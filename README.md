@@ -32,8 +32,8 @@ predictor.setup()
 # Fit the ML for all models
 predictor.fit(lmbda=1, A=1, B=0)
 
-# Sent MCMC walkers out 1000 sets and sample the likelihood of each model.
-predictor.sample(nsteps=1000)
+# Generate 10000 samples
+predictor.sample(n_samples=10000)
 
 # Sample from a given references state
 predictor.sample_posterior("0000")
