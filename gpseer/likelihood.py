@@ -50,7 +50,7 @@ class LikelihoodDB(BayesianSampler):
     @file_handler
     def predictions(self):
         """Samples of epistatic coefficients. Rows are samples, Columns are coefs."""
-        return self.File["predictions"]
+        return self.File["predictions"].value
 
     @file_handler
     def add_predictions(self, overwrite=False):

@@ -105,7 +105,7 @@ class PosteriorDB(object):
     @file_handler
     def posterior(self):
         """Posterior samples from all models as 2D array."""
-        return self.File("posterior")
+        return self.File["posterior"].value
 
     @file_handler
     def flatten(self):
