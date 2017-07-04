@@ -31,8 +31,11 @@ class LikelihoodDB(BayesianSampler):
     def _try_to_create_file(self):
         """Try to create contents for database HDF5 file.
         """
-        super(LikelihoodDB, self)._try_to_create_file()
         # Add database
+        if "coefs" not in self.File:
+            self.File.create_dataset("coefs", (0,0), maxshape=(None,None), compression="gzip")
+        if "scores" not in self.File:
+            self.File.create_dataset("scores", (0,), maxshape=(None,), compression="gzip")
         if "predictions" not in self.File:
             self.File.create_dataset("predictions", (0,0), maxshape=(None,None), compression="gzip")
 
