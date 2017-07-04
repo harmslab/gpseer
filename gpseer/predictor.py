@@ -245,7 +245,7 @@ class Predictor(object):
     def add_posteriors(self):
         """"""
         for ref in self.references:
-            path = os.path.join(self._db_dir, "posteriors", ref)
+            path = _os.path.join(self._db_dir, "posteriors", ref)
             posterior = PosteriorDB(db_dir=path)
             # Sort predictins from likelihoods
             for likelihood in self.models.values():

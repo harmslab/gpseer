@@ -47,6 +47,7 @@ class LikelihoodDB(BayesianSampler):
         return dict(zip(keys, values))
 
     @property
+    @file_handler
     def predictions(self):
         """Samples of epistatic coefficients. Rows are samples, Columns are coefs."""
         return self.File["predictions"]
