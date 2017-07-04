@@ -142,7 +142,7 @@ class Predictor(object):
         # -----------------------------------------------------------
 
         # Create a folder for posterior
-        posterior_path = _os.path.join(self._db_dir, "posterior")
+        posterior_path = _os.path.join(self._db_dir, "posteriors")
         _os.makedirs(posterior_path)
 
         # Store the location of models
@@ -198,7 +198,7 @@ class Predictor(object):
             for reference in self.references}
 
         # Store posterior DB
-        self.posteriors = {ref : PosteriorDB(path) for ref, path in self.posterior_paths.items()}
+        self.posteriors = {ref : PosteriorDB.from_db(path) for ref, path in self.posterior_paths.items()}
 
         # Setup ready.
         self.ready = True
@@ -245,8 +245,10 @@ class Predictor(object):
     def add_posteriors(self):
         """"""
         for ref in self.references:
+            path = os.path.join(self._db_dir, "posteriors", ref)
+            posterior = PosteriorDB(db_dir=path)
             # Sort predictins from likelihoods
             for likelihood in self.models.values():
                 mapping = likelihood.prediction_map
                 predictions = likelihood.predictions[:, mapping[ref]]
-                post.add_model_posteriors(ref, predictions)
+                posterior.add_model_posteriors(ref, predictions)

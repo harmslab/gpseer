@@ -2,6 +2,8 @@ import os
 import h5py
 import numpy as np
 
+from epistasis.sampling.base import file_handler
+
 class PosteriorDB(object):
     """API for storing posterior samples from different models in HDF5 files (via h5py)
 
@@ -69,6 +71,7 @@ class PosteriorDB(object):
             self = cls(db_dir=new_db_dir)
         return self
 
+    @file_handler
     def add_model_posteriors(self, key, samples, overwrite=False):
         """Append posterior samples from a given model to the Posterior database
 
@@ -99,10 +102,12 @@ class PosteriorDB(object):
         ds[:npred, col] = samples
 
     @property
+    @file_handler
     def posterior(self):
         """Posterior samples from all models as 2D array."""
         return self.File("posterior")
 
+    @file_handler
     def flatten(self):
         """Get the full set of posterior samples in the database, flattened
         as a 1D array.
@@ -115,4 +120,4 @@ class PosteriorDB(object):
 
     def histogram(self, **kwargs):
         """Return a histogram of the posterior samples"""
-        return np.histogram(self.flatten, **kwargs)
+        return np.histogram(self.flatten(), **kwargs)
