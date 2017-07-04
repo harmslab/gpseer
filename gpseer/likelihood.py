@@ -4,7 +4,7 @@ import h5py
 from datetime import datetime
 import pickle
 import numpy as np
-from epistasis.sampling.base import Sampler
+from epistasis.sampling.base import Sampler, file_handler
 from epistasis.sampling import BayesianSampler, BootstrapSampler
 
 class LikelihoodDB(BayesianSampler):
@@ -27,10 +27,11 @@ class LikelihoodDB(BayesianSampler):
     best_coefs : array
         most probable model.
     """
-    def __init__(self, model, db_dir=None):
-        # Initialize sampler
-        super(LikelihoodDB, self).__init__(model, db_dir=db_dir)
-
+    @file_handler
+    def _try_to_create_file(self):
+        """Try to create contents for database HDF5 file.
+        """
+        super(LikelihoodDB, self)._try_to_create_file()
         # Add database
         if "predictions" not in self.File:
             self.File.create_dataset("predictions", (0,0), maxshape=(None,None), compression="gzip")
@@ -47,6 +48,7 @@ class LikelihoodDB(BayesianSampler):
         """Samples of epistatic coefficients. Rows are samples, Columns are coefs."""
         return self.File["predictions"]
 
+    @file_handler
     def add_predictions(self, overwrite=False):
         """Take model samples and make predictions from each sample. If overwrite
         is False (default), the method will continue from sample that don't have
