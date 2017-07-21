@@ -7,9 +7,11 @@ import numpy as np
 from epistasis.sampling.base import Sampler, file_handler
 from epistasis.sampling import BayesianSampler, BootstrapSampler
 
-class LikelihoodDB(BayesianSampler):
+class ModelLikelihood(BayesianSampler):
     """API for sampling the likelihood of an epistasis model and inferring
     phenotypes from its likelihood.
+
+    Note: The database shape is (nsamples, n_genotypes)
 
     Parameters
     ----------
@@ -63,7 +65,7 @@ class LikelihoodDB(BayesianSampler):
             s_dims = self.File["coefs"].shape
             p_dims = self.File["predictions"].shape
             diff = s_dims[0] - p_dims[0]
-            samples = self.coefs[-diff:, :]
+            samples = self.coefs[-diff:,:]
 
             # Make predictions
             predictions = self.predict(samples)
@@ -100,40 +102,3 @@ class LikelihoodDB(BayesianSampler):
         for i in range(len(samples)):
             predictions[i,:] = self.model.hypothesis(thetas=samples[i,:])
         return predictions
-
-    def predict_from_random_samples(self, n):
-        """Randomly draw from sampled models and predict phenotypes.
-
-        Parameters
-        ----------
-        n : int
-            Number of models to randomly draw to create a set of predictions.
-
-        Returns
-        -------
-        predictions : 2d array
-            Sets of data predicted from the sampled models.
-        """
-        sample_size, coef_size = self.coefs.shape
-        indices = np.random.choice(np.arange(sample_size), n, replace=True)
-        return self.predict(samples=self.coefs.value[indices,:])
-
-    def predict_from_top_samples(self, n):
-        """Draw from top sampled models and predict phenotypes.
-
-        Parameters
-        ----------
-        n : int
-            Number of top models to draw to create a set of predictions.
-
-        Returns
-        -------
-        predictions : 2d array
-            Sets of data predicted from the sampled models.
-        """
-        sample_size, coef_size = self.coefs.shape
-        model_indices = np.argsort(self.scores)[::-1]
-        samples = np.empty((n, coef_size))
-        for i, index in enumerate(model_indices[:n]):
-            samples[i,:] = self.coefs[index, :]
-        return self.predict(samples=samples)
