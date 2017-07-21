@@ -71,7 +71,7 @@ class GPSeer(object):
 
     def add_ml_fits(self, **kwargs):
         genotypes = self.gpm.complete_genotypes
-        fits = self.client.map(workers.fit, genotypes, gpm=self.gpm, model=self.model, kwargs=kwargs)
+        fits = self.client.map(workers.fit, genotypes, gpm=self.gpm, model=self.model, **kwargs)
         fits = self.client.gather(fits)
         self.fits = dict(zip(genotypes, fits))
 
