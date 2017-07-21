@@ -1,10 +1,10 @@
 # GPSeer: a genotype-phenotype predictor
 
-A Python API that predicts unknown phenotypes genotype-phenotype maps from known phenotypes.
+A Python API that predicts unknown phenotypes genotype-phenotype maps from known phenotypes, powered by [Dask](https://github.com/dask/dask).
 
 Still under development.
 
-The base class, `Predictor`, fits a high-order epistasis model (using Linear Regression) to an incomplete genotype-phenotype map. Due to the growing size of experimental genotype-phenotype maps and the necessity to bootstrap these maps, we've built GPSeer on top of `h5py`. This enables us to manage and search large datasets (on the order of Terabytes) efficiently.
+`GPSeer`, fits a high-order epistasis model (using Nonlinear regression and classification) to an incomplete genotype-phenotype map. Due to the growing size of experimental genotype-phenotype maps and the necessity to bootstrap these maps, we've built GPSeer on top of `h5py`. This enables us to manage and search large datasets (on the order of Terabytes) efficiently.
 
 GPSeer uses the Python APIs, GPMap and Epistasis, to draw out as much information as possible from a measured genotype-phenotype map, and then makes predictions about unknown genotype-phenotypes.
 
@@ -13,30 +13,25 @@ GPSeer uses the Python APIs, GPMap and Epistasis, to draw out as much informatio
 ```python
 from gpmap import GenotypePhenotypeMap
 from epistasis.models import EpistasisMixedRegression
-from epistasis.sampling import BayesianSampler
-from gpseer import Predictor
+from gpseer import GPSeer
 
-# Read in data
-gpm = GenotypePhenotypeMap.from_json("example.json")
+# Sample directory name
+db_dir = "samples"
 
-# Initialize the predictor
-predictor = Predictor(gpm,
-    Model= EpistasisMixedRegression,    # Type of epistasis model
-    Sampler=BayesianSampler,            # Sampling method
-    order=2                             # Order of epistasis model (optional argument)
-)
+# Load data
+gpm = GenotypePhenotypeMap.from_json("data.json")
 
-# Prepare the predictor models
-predictor.setup()
+# Initialize a model to use
+model = EpistasisMixedRegression(order=3, threshold=5, model_type="local")
 
-# Fit the ML for all models
-predictor.fit(lmbda=1, A=1, B=0)
+# Initialize a GPSeer object
+seer = GPSeer(gpm, model, db_dir=db_dir)
 
-# Generate 10000 samples
-predictor.sample(n_samples=10000)
-
-# Sample from a given references state
-predictor.sample_posterior("0000")
+# Run Pipeline
+seer.add_ml_fits()        # Fit maximum likelihood models.
+seer.add_samples(10000)   # Sample the likelihood function.
+seer.add_predictions()    # Predict from samples.
+seer.add_posteriors()     # Construct a posterior distribution.
 ```
 
 ## Install
