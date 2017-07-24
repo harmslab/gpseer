@@ -20,6 +20,18 @@ class GPSeer(object):
     :math:`E` is equal to the probability of the data given the model times the
     probability of the model."
 
+
+    Parameters
+    ----------
+    gpm: GenotypePhenotypeMap
+        dataset as a GenotypePhenotypeMap object
+    model:
+        epistasis model to fit the data.
+    client: dask.distributed.Client
+        A client to parallelize the gpseer
+    db_dir: str
+
+
     Example
     -------
     The resulting predictor database will look something like:
@@ -46,7 +58,7 @@ class GPSeer(object):
             .
             .
     """
-    def __init__(self, gpm, model, db_dir=None, **kwargs):
+    def __init__(self, gpm, model, client=None, db_dir=None, **kwargs):
         # Set parameters
         self.gpm = gpm
         self.model = model
@@ -62,7 +74,9 @@ class GPSeer(object):
             os.makedirs(self._db_dir)
 
         # Scheduler
-        self.client = dask.distributed.Client()
+        if client is None:
+            raise Exception("Start a dask distributed client first.")
+        self.client = client
 
     @classmethod
     def load(cls, db_dir):
