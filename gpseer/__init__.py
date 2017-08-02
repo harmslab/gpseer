@@ -1,1 +1,2 @@
-from .main import GPSeer
+from .gpseer import GPSeer
+from .predictions import GPPredictions

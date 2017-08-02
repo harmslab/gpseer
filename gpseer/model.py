@@ -7,7 +7,7 @@ import numpy as np
 from epistasis.sampling.base import Sampler, file_handler
 from epistasis.sampling import BayesianSampler, BootstrapSampler
 
-class ModelLikelihood(BayesianSampler):
+class ModelSampler(BayesianSampler):
     """API for sampling the likelihood of an epistasis model and inferring
     phenotypes from its likelihood.
 

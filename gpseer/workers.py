@@ -3,7 +3,7 @@ import glob
 import copy
 import h5py
 import dask.array
-from .likelihood import ModelLikelihood
+from .model import ModelSampler
 
 def fit(reference, gpm=None, model=None, **kwargs):
     """"""
@@ -20,17 +20,17 @@ def sample(model, n_samples=1000, db_dir=None):
     """"""
     reference = model.gpm.binary.wildtype
     path = os.path.join(db_dir, "models","{}".format(reference))
-    likelihood = ModelLikelihood(model, db_dir=path)
-    likelihood.add_samples(n_samples)
+    sampler = ModelSampler(model, db_dir=path)
+    sampler.add_samples(n_samples)
 
 def predict(model, db_dir=None):
     """"""
     reference = model.gpm.binary.wildtype
     path = os.path.join(db_dir, "models","{}".format(reference))
-    likelihood = ModelLikelihood(model, db_dir=path)
-    likelihood.add_predictions()
+    sampler = ModelSampler(model, db_dir=path)
+    sampler.add_predictions()
 
-def posterior(keypair, db_dir=None):
+def likelihood(keypair, db_dir=None):
     """"""
     index = keypair[0]
     genotype = keypair[1]
@@ -47,4 +47,4 @@ def posterior(keypair, db_dir=None):
     # Create a folder for the database.
     if not os.path.exists(new_path):
         os.makedirs(new_path)
-    dask.array.to_hdf5(os.path.join(new_path, "posterior.hdf5"), '/posterior', array)
+    dask.array.to_hdf5(os.path.join(new_path, "likelihoods.hdf5"), '/likelihoods', array)
