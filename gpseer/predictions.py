@@ -72,10 +72,11 @@ class GPPredictions(object):
             nrows += 1
         figsize = (ncols*3, nrows * 2)
 
-        plt.figure(figsize=figsize)
+        fig = plt.figure(figsize=figsize)
 
         # Main gridspec
         gs = gridspec.GridSpec(nrows, ncols)
+        gs.update(hspace=0.5)
 
         for i in range(nrows):
             for j in range(ncols):
@@ -86,6 +87,8 @@ class GPPredictions(object):
                 hist = self.histograms[genotype]
                 gs_sub = gridspec.GridSpecFromSubplotSpec(3,32, subplot_spec=gs[i, j])
                 plot_histogram(hist.index, hist, gridspec=gs_sub)
+
+        return fig
 
     def snapshot(self):
         """"""
@@ -99,15 +102,12 @@ class GPSnapshot(object):
         self.histograms = histograms
         self.df = df
 
-    
-
     def plot_histograms(self, genotypes=None, ncols=3):
         """Plot histograms."""
         # Imports for plotting
         from .plot import plot_histogram
         import matplotlib.gridspec as gridspec
         import matplotlib.pyplot as plt
-
 
         genotypes = self.gpm.complete_genotypes
         nplots = len(genotypes)

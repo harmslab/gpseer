@@ -13,11 +13,23 @@ def plot_histogram(bins, ys, threshold=None, xlabel="", gridspec=None):
     plot_alive = plt.subplot(gs[:, 2:])
 
     # ----------------------------------------------------
+    # Threshold?
+    # ----------------------------------------------------
+
+    if threshold != None:
+        deady = ys[ys<theshold]
+        alivey = ys[ys>=threshold]
+
+
+        plot_alive.vlines(threshold, 0, 0.1, linestyles="dotted")
+
+
+    # ----------------------------------------------------
     # Alive block
     # ----------------------------------------------------
 
     width = bins[1] - bins[0]
-    #height = frac_dead / width
+    height = frac_dead / width
     plot_dead.bar(left=0, height=0, width=width, color="gray")
     plot_dead.set_xlabel("below\ndetection")
     plot_dead.spines["left"].set_visible(False)
@@ -42,12 +54,5 @@ def plot_histogram(bins, ys, threshold=None, xlabel="", gridspec=None):
     #plot_alive.spines["bottom"].set_bounds(5,160)
     plot_alive.set_xlabel(xlabel)
     #plot_alive.axis([0,160,-0.002,0.1])
-
-    # ----------------------------------------------------
-    # Threshold?
-    # ----------------------------------------------------
-
-    if threshold != None:
-        plot_alive.vlines(threshold, 0, 0.1, linestyles="dotted")
 
     return gs, plot_dead, plot_alive
