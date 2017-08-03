@@ -20,12 +20,12 @@ def fit(reference, gpm=None, model=None, **kwargs):
     model_copy.fit(**kwargs)
     return model_copy
 
-def sample(model, n_samples=1000, db_dir=None):
+def sample(model, n_samples=1000, db_dir=None, **kwargs):
     """"""
     reference = model.gpm.binary.wildtype
     path = os.path.join(db_dir, "models","{}".format(reference))
     sampler = ModelSampler(model, db_dir=path)
-    sampler.add_samples(n_samples)
+    sampler.add_samples(n_samples, **kwargs)
 
 def predict(model, db_dir=None):
     """"""

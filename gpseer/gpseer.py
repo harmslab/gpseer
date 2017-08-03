@@ -107,10 +107,10 @@ class GPSeer(object):
         fits = self.client.gather(fits)
         self.fits = dict(zip(genotypes, fits))
 
-    def add_samples(self, n_samples=10000):
+    def add_samples(self, n_samples=10000, **kwargs):
         genotypes = self.gpm.complete_genotypes
         models = list(self.fits.values())
-        likelihoods = self.client.map(workers.sample, models, n_samples=n_samples, db_dir=self._db_dir)
+        likelihoods = self.client.map(workers.sample, models, n_samples=n_samples, db_dir=self._db_dir, **kwargs=kwargs)
         likelihoods = self.client.gather(likelihoods)
         self.likelihoods = dict(zip(genotypes, likelihoods))
 
