@@ -27,29 +27,7 @@ class Mock(MagicMock):
     def __getattr__(cls, name):
             return Mock()
 
-MOCK_MODULES = ['numpy','scipy',
-    'scikit-learn',
-    'nose.tools',
-    'nose',
-    'sklearn',
-    'sklearn.linear_model',
-    'scipy.optimize',
-    'scipy.misc',
-    'scipy.stats',
-    'networkx',
-    'ipython',
-    'ipywidgets',
-    'jupyter',
-    'notebook',
-    'matplotlib.pyplot',
-    'matplotlib.cbook',
-    'matplotlib',
-    'sklearn.decomposition',
-    'sklearn.decomposition.PCA',
-    'sklearn.metrics',
-    'Cython.Build',
-    'epistasis.decomposition'
-]
+MOCK_MODULES = []
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # If extensions (or modules to document with autodoc) are in another directory,

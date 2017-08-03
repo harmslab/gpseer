@@ -1,3 +1,7 @@
+"""
+The worker module includes functions for single workers to do tasks scheduled
+by a Dask.distributed Client.
+"""
 import os
 import glob
 import copy
@@ -7,14 +11,14 @@ from .model import ModelSampler
 
 def fit(reference, gpm=None, model=None, **kwargs):
     """"""
-    model = copy.deepcopy(model)
+    model_copy = copy.deepcopy(model)
     # Extremely inefficient...
-    gpm_ = copy.deepcopy(gpm)
+    gpm_copy = copy.deepcopy(gpm)
     # Set the reference state for the binary representation of the map.
-    gpm_.binary.wildtype = reference
-    model.add_gpm(gpm_)
-    model.fit(**kwargs)
-    return model
+    gpm_copy.add_binary(reference)
+    model_copy.add_gpm(gpm_copy)
+    model_copy.fit(**kwargs)
+    return model_copy
 
 def sample(model, n_samples=1000, db_dir=None):
     """"""

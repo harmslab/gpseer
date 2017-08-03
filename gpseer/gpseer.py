@@ -85,10 +85,6 @@ class GPSeer(object):
         with open(os.path.join(self._db_dir, "gpm.pickle"), "wb") as f:
             pickle.dump(self.gpm, f)
 
-    def read_excel():
-        """"""
-        pass
-
     @classmethod
     def load(cls, client, db_dir):
         """Load GPSeer for a database of samples.
