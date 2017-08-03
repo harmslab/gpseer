@@ -127,9 +127,9 @@ class GPSeer(object):
         slices = self.client.map(workers.likelihood, items, db_dir=self._db_dir)
         self.client.gather(slices)
 
-    def run(self, n_samples=10000):
+    def run(self, n_samples=10000, **kwargs):
         """Run GPSeer out-of-box"""
         self.add_ml_fits()
-        self.add_samples(n_samples=n_samples)
+        self.add_samples(n_samples=n_samples, **kwargs)
         self.add_predictions()
         self.add_likelihoods()
