@@ -94,7 +94,14 @@ def analyze(genotype, db_dir=None):
     """"""
     # Handle paths
     likelihood_path = os.path.join(db_dir, "likelihoods", genotype, "likelihood.hdf5")
-    snapshot_path = os.path.join(db_dir, "likelihoods", genotype, "snapshot.pickle")
+    snapshot_path = os.path.join(db_dir, "snapshots", "{}.pickle".format(genotype))
+
+    # Write to file
+    new_path = os.path.join(db_dir, "snapshots")
+
+    # Create file
+    if not os.path.exists(new_path):
+        os.makedirs(new_path)
 
     # Build a predictions object
     prediction = Prediction(likelihood_path)

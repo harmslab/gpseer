@@ -19,7 +19,7 @@ from gpseer import GPSeer
 db_dir = "samples"
 
 # Load data
-gpm = GenotypePhenotypeMap.from_json("data.json")
+gpm = GenotypePhenotypeMap.read_json("data.json")
 
 # Initialize a model to use
 model = EpistasisMixedRegression(

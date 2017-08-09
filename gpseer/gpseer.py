@@ -33,12 +33,11 @@ class GPSeer(object):
     -------
     The resulting predictor database will look something like:
 
-
     .. code-block:: bash
 
         predictor/
-            Model.pickle
-            model_kwargs.json
+            gpm.pickle
+            model.pickle
             models/
                 genotype-1/
                     model.pickle
@@ -51,9 +50,9 @@ class GPSeer(object):
                 .
             likelihoods/
                 genotype-1/
-                    likelihoods-db.h5
-                genotype-2.h5
-                    likelihoods-db.h5
+                    likelihood.h5
+                genotype-2/
+                    likelihood.h5
                 .
                 .
                 .
@@ -126,7 +125,7 @@ class GPSeer(object):
         try:
             self.snapshots = {}
             for genotype in self.genotypes:
-                path = os.path.join(self._db_dir, "likelihoods", genotype, "snapshot.pickle")
+                path = os.path.join(self._db_dir, "snapshots", "{}.pickle".format(genotype))
                 self.snapshots[genotype] = prediction.Snapshot.load(path)
 
         except IOError:
