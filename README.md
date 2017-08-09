@@ -22,19 +22,28 @@ db_dir = "samples"
 gpm = GenotypePhenotypeMap.from_json("data.json")
 
 # Initialize a model to use
-model = EpistasisMixedRegression(order=3, threshold=5, model_type="local")
+model = EpistasisMixedRegression(
+    order=3,                # Set order of model
+    threshold=5,            # Threshold for classification as viable/nonviable
+    lmbda=1, A=1, B=1,      # nonlinear scale parameters
+    model_type="local")     # Type of high-order epistais model to use.
 
 # Initialize a GPSeer object
 seer = GPSeer(gpm, model, db_dir=db_dir)
 
-# Run Pipeline
-seer.add_ml_fits()        # Fit maximum likelihood models.
-seer.add_samples(10000)   # Sample the likelihood function.
-seer.add_predictions()    # Predict from samples.
-seer.add_posteriors()     # Construct a posterior distribution.
+# Run Pipeline.
+# This samples predictions from many epistasis models.
+# Then, fits histograms to the large array of predictions and
+# saves these as Snapshot objects.
+seer.run(n_samples=10000)
+
+# Plot the histogram to visualize the prediction probability distribution.
+seer.snaphots["000"].plot()
 ```
 
 ## Install
+
+Clone this repository and install with pip:
 
 ```
 pip install -e .
@@ -43,5 +52,7 @@ pip install -e .
 ## Dependencies
 
 1. gpmap : Python API for analyzing genotype phenotype maps.
-2. epistasis :  
-3. h5py :
+2. epistasis : Python API for extracting high-order epistasis in genotype-phenotype maps
+3. h5py : Python API for working with HDF5 files (writing large arrays to disk).
+4. Dask : Distributed array computing made easy in Python.
+5. dask.distributed : distributing scheduler made easy in Python.

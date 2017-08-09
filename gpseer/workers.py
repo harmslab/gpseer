@@ -12,7 +12,22 @@ from .model import ModelSampler
 from .prediction import Prediction
 
 def fit(reference, gpm=None, model=None, **kwargs):
-    """"""
+    """Copy the genotype-phenotype map and epistasis model, set the reference
+    state in the copy, and fit the model to the map.
+
+    Parameters
+    ----------
+    reference : str
+        reference genotype.
+    gpm : GenotypePhenotypeMap
+        genotype-phenotype-map dataset.
+    model :
+        epistasis model to fit the data
+
+    Keyword Arguments
+    -----------------
+    Key word arguments are passed to the model.fit() method.
+    """
     model_copy = copy.deepcopy(model)
     # Extremely inefficient...
     gpm_copy = copy.deepcopy(gpm)
@@ -23,12 +38,19 @@ def fit(reference, gpm=None, model=None, **kwargs):
     return model_copy
 
 def sample(model, n_samples=1000, db_dir=None, **kwargs):
-    """"""
+    """Sample the parameters of the model and store in a HDF5 file.
+
+    Parameters
+    ----------
+    model :
+        epistasis model.
+    n_samples : int
+
+    """
     reference = model.gpm.binary.wildtype
     path = os.path.join(db_dir, "models","{}".format(reference))
     sampler = ModelSampler(model, db_dir=path)
     sampler.add_samples(n_samples, **kwargs)
-    return model
 
 def predict(model, db_dir=None):
     """"""
@@ -36,7 +58,6 @@ def predict(model, db_dir=None):
     path = os.path.join(db_dir, "models","{}".format(reference))
     sampler = ModelSampler(model, db_dir=path)
     sampler.add_predictions()
-    return model
 
 def sort(model, db_dir=None):
     """"""
@@ -69,16 +90,14 @@ def sort(model, db_dir=None):
     ds = f.create_dataset("likelihood", data=arr, dtype=float)
     f.close()
 
-    return path
-
-def analyze(likelihood_path, chunk=1000):
+def analyze(genotype, db_dir=None):
     """"""
     # Handle paths
-    path, filename = os.path.split(likelihood_path)
-    snapshot_path = os.path.join(path, "snapshot.pickle")
+    likelihood_path = os.path.join(db_dir, "likelihoods", genotype, "likelihood.hdf5")
+    snapshot_path = os.path.join(db_dir, "likelihoods", genotype, "snapshot.pickle")
 
     # Build a predictions object
-    prediction = Prediction(likelihood_path, chunks=chunk)
+    prediction = Prediction(likelihood_path)
 
     # Histogram the data
     prediction.histogram()
@@ -89,5 +108,4 @@ def analyze(likelihood_path, chunk=1000):
     # Snapshot and save
     snapshot = prediction.snapshot()
     snapshot.pickle(snapshot_path)
-
     return snapshot

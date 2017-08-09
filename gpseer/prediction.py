@@ -64,9 +64,19 @@ class Prediction(object):
             binsize = 2 * (IQR) / (n**(1/3))
             bins = np.arange(min_, max_, binsize)
 
-        # Calculate
-        h, self.bins = da.histogram(self.samples, bins=bins, range=range)
-        self.h = h.compute()
+        # Make sure bins are present
+        if min_ == 0 and max_ == 0:
+            self.h = np.array([len(self.samples)])
+            self.bins = np.array([0])
+
+        elif len(bins) == 0 :
+            self.bins = np.array([0])
+            self.h = np.array([0])
+
+        else:
+            # Calculate
+            h, self.bins = da.histogram(self.samples, bins=bins, range=range)
+            self.h = h.compute()
         return self.h, self.bins
 
     def snapshot(self):
