@@ -6,8 +6,10 @@ import os
 import glob
 import copy
 import h5py
+import numpy as np
 import dask.array
 from .model import ModelSampler
+from .prediction import Prediction
 
 def fit(reference, gpm=None, model=None, **kwargs):
     """"""
@@ -26,6 +28,7 @@ def sample(model, n_samples=1000, db_dir=None, **kwargs):
     path = os.path.join(db_dir, "models","{}".format(reference))
     sampler = ModelSampler(model, db_dir=path)
     sampler.add_samples(n_samples, **kwargs)
+    return model
 
 def predict(model, db_dir=None):
     """"""
@@ -33,22 +36,58 @@ def predict(model, db_dir=None):
     path = os.path.join(db_dir, "models","{}".format(reference))
     sampler = ModelSampler(model, db_dir=path)
     sampler.add_predictions()
+    return model
 
-def likelihood(keypair, db_dir=None):
+def sort(model, db_dir=None):
     """"""
-    index = keypair[0]
-    genotype = keypair[1]
-    path = os.path.join(db_dir, "models", "*", "sample-db.hdf5")
-    filenames = glob.glob(path)
+    genotypes = model.gpm.complete_genotypes
+    reference = model.gpm.binary.wildtype
+    index = genotypes[genotypes == reference].index[0]
 
-    # Select slice for this genotypes
-    slices = [h5py.File(fn, "r")["predictions"][:,index] for fn in filenames]
-    pieces = [dask.array.from_array(ds, chunks=(1000,)) for ds in slices]
-    array = dask.array.stack(pieces, axis=0)
-    new_path = os.path.join(db_dir, "likelihoods", genotype)
+    # Link to all h5py files (out of core).
+    path = os.path.join(db_dir, "models")
+    data = [h5py.File(os.path.join(path, genotype, "sample-db.hdf5"))["predictions"] for genotype in genotypes]
 
-    # Write to disk
-    # Create a folder for the database.
+    # Concatenate all arrays
+    chunk_shape = data[0].shape
+    combined = dask.array.concatenate([dask.array.from_array(ds, chunks=chunk_shape) for ds in data], axis=0)
+
+    # Get array
+    arr = np.array(combined[:, index])
+
+    # Write to file
+    new_path = os.path.join(db_dir, "likelihoods", reference)
+
+    # Create file
     if not os.path.exists(new_path):
         os.makedirs(new_path)
-    dask.array.to_hdf5(os.path.join(new_path, "likelihoods.hdf5"), '/likelihoods', array)
+
+    path = os.path.join(new_path, "likelihood.hdf5")
+
+    # Write to HDF5 file
+    f = h5py.File(path)
+    ds = f.create_dataset("likelihood", data=arr, dtype=float)
+    f.close()
+
+    return path
+
+def analyze(likelihood_path, chunk=1000):
+    """"""
+    # Handle paths
+    path, filename = os.path.split(likelihood_path)
+    snapshot_path = os.path.join(path, "snapshot.pickle")
+
+    # Build a predictions object
+    prediction = Prediction(likelihood_path, chunks=chunk)
+
+    # Histogram the data
+    prediction.histogram()
+
+    # Calculate the percentiles
+    prediction.percentile((2.5, 97.5))
+
+    # Snapshot and save
+    snapshot = prediction.snapshot()
+    snapshot.pickle(snapshot_path)
+
+    return snapshot

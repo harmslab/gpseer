@@ -3,9 +3,11 @@ import glob
 import h5py
 import copy
 import pickle
-import dask
+import dask.array
 import dask.distributed
 from . import workers
+
+from .prediction import Prediction
 
 class GPSeer(object):
     """API for sampling a set of epistasis models and inferring phenotypes from
@@ -85,6 +87,11 @@ class GPSeer(object):
         with open(os.path.join(self._db_dir, "gpm.pickle"), "wb") as f:
             pickle.dump(self.gpm, f)
 
+    @property
+    def genotypes(self):
+        """Full set of genotypes in genotype-phenotype map."""
+        return self.gpm.complete_genotypes
+
     @classmethod
     def load(cls, client, db_dir):
         """Load GPSeer for a database of samples.
@@ -101,35 +108,47 @@ class GPSeer(object):
         self = cls(gpm, model, client, db_dir=None)
         return self
 
-    def add_ml_fits(self):
+    def _add_ml_fits(self):
         genotypes = self.gpm.complete_genotypes
         fits = self.client.map(workers.fit, genotypes, gpm=self.gpm, model=self.model)
         fits = self.client.gather(fits)
         self.fits = dict(zip(genotypes, fits))
 
-    def add_samples(self, n_samples=10000, **kwargs):
-        genotypes = self.gpm.complete_genotypes
-        models = list(self.fits.values())
-        likelihoods = self.client.map(workers.sample, models, n_samples=n_samples, db_dir=self._db_dir, **kwargs)
-        likelihoods = self.client.gather(likelihoods)
-        self.likelihoods = dict(zip(genotypes, likelihoods))
-
-    def add_predictions(self):
-        genotypes = self.gpm.complete_genotypes
+    def _add_samples(self, n_samples=10000, **kwargs):
+        genotypes = list(self.fits.keys())
         fits = list(self.fits.values())
-        results = self.client.map(workers.predict, fits, db_dir=self._db_dir)
-        self.client.gather(results)
+        fits = self.client.map(workers.sample, fits, n_samples=n_samples, db_dir=self._db_dir, **kwargs)
+        fits = self.client.gather(fits)
+        self.fits = dict(zip(genotypes, fits))
 
-    def add_likelihoods(self):
-        genotypes = self.gpm.complete_genotypes
-        indices = list(range(len(genotypes)))
-        items = tuple(zip(indices,genotypes))
-        slices = self.client.map(workers.likelihood, items, db_dir=self._db_dir)
-        self.client.gather(slices)
+    def _add_predictions(self):
+        genotypes = list(self.fits.keys())
+        fits = list(self.fits.values())
+        fits = self.client.map(workers.predict, fits, db_dir=self._db_dir)
+        fits = self.client.gather(fits)
+        self.fits = dict(zip(genotypes, fits))
+
+    def _add_sorted_likelihoods(self):
+        genotypes = list(self.fits.keys())
+        fits = list(self.fits.values())
+        fits = self.client.map(workers.sort, fits, db_dir=self._db_dir)
+        paths_to_likelihoods = self.client.gather(fits)
+        self.paths_to_likelihoods = dict(zip(genotypes, paths_to_likelihoods))
+
+    def _add_analysis(self):
+        """"""
+        genotypes = list(self.paths_to_likelihoods.keys())
+        likelihood_paths = list(self.paths_to_likelihoods.values())
+        chunk = len(genotypes)
+        predictions = self.client.map(workers.analyze, likelihood_paths, chunk=chunk)
+        snapshots = self.client.gather(predictions)
+        self.snapshots = dict(zip(genotypes, snapshots))
 
     def run(self, n_samples=10000, **kwargs):
         """Run GPSeer out-of-box"""
-        self.add_ml_fits()
-        self.add_samples(n_samples=n_samples, **kwargs)
-        self.add_predictions()
-        self.add_likelihoods()
+        # Run the Pipeline to predict phenotypes
+        self._add_ml_fits()
+        self._add_samples(n_samples=n_samples, **kwargs)
+        self._add_predictions()
+        self._add_sorted_likelihoods()
+        self._add_analysis()
