@@ -3,6 +3,7 @@ import pickle
 import numpy as np
 import dask.array as da
 import matplotlib.pyplot as plt
+from sklearn.neighbors import KernelDensity
 
 class Prediction(object):
     """Object for analyzing a predictions HDF5 database.
@@ -41,6 +42,42 @@ class Prediction(object):
         out = da.percentile(self.samples, percentiles)
         self.p = out.compute()
         return self.p
+
+    def kde(self, bins="auto", range=None):
+        """Compute a kernel density estimation."""
+        # Determine range max/min
+        if range is None:
+            min_ = da.min(self.samples)
+            min_ = min_.compute()
+            max_ = da.max(self.samples)
+            max_ = max_.compute()
+        else:
+            min_ = range[0]
+            max_ = range[1]
+
+        # If no bins are given, use the Freedman Diaconis Estimator
+        if bins == "auto":
+            data = self.samples
+            n = data.size
+            machine =  da.percentile(data, (25,75))
+            ends = machine.compute()
+            IQR = ends[1] - ends[0]
+            binsize = 2 * (IQR) / (n**(1/3))
+            bins = np.arange(min_, max_, binsize)
+
+        # Make sure bins are present
+        if min_ == 0 and max_ == 0:
+            self.h = np.array([len(self.samples)])
+            self.bins = np.array([0])
+
+        elif len(bins) == 0 :
+            self.bins = np.array([0])
+            self.h = np.array([0])
+
+        else:
+            kde = KernelDensity(rtol=1e-2).fit(self.samples[:,np.newaxis])
+            self.h = np.exp(kde.score_samples(self.bins[:, np.newaxis]))
+        return self.h, self.bins
 
     def histogram(self, bins="auto", range=None):
         """Compute a histogram of the samples."""

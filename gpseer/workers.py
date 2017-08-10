@@ -107,7 +107,7 @@ def analyze(genotype, db_dir=None):
     prediction = Prediction(likelihood_path)
 
     # Histogram the data
-    prediction.histogram()
+    prediction.kde()#.histogram()
 
     # Calculate the percentiles
     prediction.percentile((2.5, 97.5))
