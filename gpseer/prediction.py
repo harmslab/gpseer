@@ -75,6 +75,7 @@ class Prediction(object):
             self.h = np.array([0])
 
         else:
+            self.bins = bins
             kde = KernelDensity(rtol=1e-2).fit(self.samples[:,np.newaxis])
             self.h = np.exp(kde.score_samples(self.bins[:, np.newaxis]))
         return self.h, self.bins
