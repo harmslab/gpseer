@@ -7,7 +7,7 @@ import pandas as pd
 from . import workers
 
 # Import Dask stuff for distributed computing!
-from dask import delayed, compute
+from dask import delayed, compute, dataframe
 from dask.distributed import Client
 
 class DistributedEngine(object):
@@ -25,7 +25,7 @@ class DistributedEngine(object):
         references = gpm.complete_genotypes
 
         # Distribute the work using Dask.
-        items = [workers.setup(ref, gpm, model) for ref in references]
+        items = [delayed(workers.setup)(ref, gpm, model) for ref in references]
         results = compute(*items, get=self.client.get)
         
         # Organize the results
@@ -41,7 +41,7 @@ class DistributedEngine(object):
     def fit(self):
         """"""
         # Distribute the work using Dask.
-        items = [workers.fit(ref, items['model']) for ref, items in self.model_map.items()]
+        items = [delayed(workers.fit)(ref, items['model']) for ref, items in self.model_map.items()]
         results = compute(*items, get=self.client.get)
         
         # Organize the results.
@@ -51,7 +51,7 @@ class DistributedEngine(object):
     def sample(self):
         """"""
         # Distribute the work using Dask.
-        items = [workers.sample(ref, items['model']) for ref, items in self.model_map.items()]
+        items = [delayed(workers.sample)(ref, items['model']) for ref, items in self.model_map.items()]
         results = compute(*items, get=self.client.get)   
         
         # Organize the results.
@@ -62,7 +62,7 @@ class DistributedEngine(object):
     def predict(self, db_path):
         """"""
         # Distribute the work using Dask.
-        items = [workers.predict(ref, items['sampler'], db_path=db_path) for ref, items in self.model_map.items()]
+        items = [delayed(workers.predict)(ref, items['sampler'], db_path=db_path) for ref, items in self.model_map.items()]
         results = compute(*items, get=self.client.get)
         
         # Organize the results.
@@ -74,10 +74,15 @@ class DistributedEngine(object):
         # Create database folder
         if not os.path.exists(db_path):
             os.makedirs(db_path)
-    
-        # Run models.
-        for ref in references:
-            workers.run(ref, gpm, model, db_path=db_path)
 
-    def collect(self, model_map):
-        pass
+        # Get references
+        references = gpm.complete_genotypes
+        
+        # Distribute the work using Dask.
+        items = [delayed(workers.run)(ref, gpm, model, db_path=db_path) for ref in references]
+        results = compute(*items, get=self.client.get)
+
+    def collect(self, db_path):
+        filenames = os.path.join(db_path, "*.csv")
+        df = dataframe.read_csv(filenames)
+        return df

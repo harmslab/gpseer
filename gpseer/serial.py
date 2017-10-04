@@ -1,4 +1,4 @@
-import os
+import os, glob
 import numpy as np
 import pandas as pd
 
@@ -58,11 +58,14 @@ class SerialEngine(object):
         for ref in references:
             workers.run(ref, gpm, model, db_path=db_path)
     
-    def collect(self, filenames):
+    def collect(self, db_path):
         """"""
+        # Create filenames
+        filenames = glob.glob(os.path.join(db_path, "*.csv"))
+        
         # Read datasets
         dfs = []
         for fname in filenames:
-            df = pd.read_csv(path, index_col=0)
+            df = pd.read_csv(fname, index_col=0)
             dfs.append(df)
         return pd.concat(dfs)

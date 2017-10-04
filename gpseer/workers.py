@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 
 from gpmap import GenotypePhenotypeMap
-from gpmap.utils import hamming_distance
 from epistasis.sampling.bayesian import BayesianSampler
 
 def setup(reference, gpm, model):

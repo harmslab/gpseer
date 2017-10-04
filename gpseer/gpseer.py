@@ -1,4 +1,7 @@
-import os, glob
+import os
+import numpy as np
+
+from gpmap.utils import hamming_distance
 
 from .utils import EngineError
 from .serial import SerialEngine
@@ -15,7 +18,7 @@ class GPSeer(object):
         # Tell whether to serialize or not.
         if engine == "serial": 
             self.engine = SerialEngine()
-        elif client == "distributed":
+        elif engine == "distributed":
             self.engine = DistributedEngine()
         else:
             raise EngineError('client argument is invalid. Must be "serial" or "distributed".')
@@ -50,9 +53,7 @@ class GPSeer(object):
 
     def collect(self):
         """"""
-        path = os.path.join(self.db_path, "*.csv")
-        filenames = glob.glob(path)
-        self.df = self.engine.collect(filenames)
+        self.df = self.engine.collect(self.db_path)
         return self.df
     
     def get_posterior(self, genotype, n_samples=10000):
@@ -60,9 +61,10 @@ class GPSeer(object):
         references = self.gpm.complete_genotypes
 
         # Calculate how many samples exist
-        dims = self.df.shape
-        nsamples = dims[0] / dims[1]
-        
+        dim1 = len(self.df)
+        dim2 = len(references)
+        nsamples = int(dim1 / dim2)
+
         # Prepare weights for a genotype
         weights = []
         for ref in references:
