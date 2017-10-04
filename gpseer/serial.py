@@ -1,62 +1,68 @@
+import os
+import numpy as np
 import pandas as pd
 
-from epistasis.sampling.bayesian import BayesianSampler
+from . import workers
 
 class SerialEngine(object):
     """"""
-    @staticmethod
-    def setup(gpm, model):        
-        # keys
-        keys = gpm.complete_genotypes
+    def setup(self, gpm, model):            
+        # Get references
+        references = gpm.complete_genotypes
         
-        # Set up models. Copies the GenotypePhenotypeMap
-        model_map = {}
-        for key in keys:
-            # Build a GenotypePhenotypeMap with a new reference state.
-            new_gpm = GenotypePhenotypeMap( key, # New reference state.
-                gpm.genotypes,
-                gpm.phenotypes,
-                stdeviations=gpm.stdeviations,
-                n_replicates=gpm.n_replicates,
-                mutations=gpm.mutations) 
-            
-            # initialize a completely new model object with same parameters
-            new_model = model.__class__(**model.model_specs)
-    
-            # Add genotype-phenotype map.
-            new_model.add_gpm(new_gpm)
-            new_model.fit()
+        # Get models.
+        self.model_map = {}
+        for i, ref in enumerate(references):
+            # Get model from worker function
+            new_model = workers.setup(ref, gpm, model)
 
             # Store model
-            items = dict(model=new_model, sampler=BayesianSampler(new_model))
-            model_map[key] = items
+            items = dict(model=new_model)
+            self.model_map[ref] = items
     
-    @staticmethod
-    def fit(model_map):
+    def fit(self):
         """"""
-        for key, items in model_map.items():
-            model = items["model"]
-            model.fit()
+        for ref, items in self.model_map.items():
+            model = items['model']
+            model = workers.fit(ref, model)
 
-    @staticmethod            
-    def sample(model_map):
-        """"""
-        for key, items in model_map.items():
-            sampler = items["sampler"]
-            sampler.sample(10)
+    def sample(self):
+        """"""            
+        for ref, items in self.model_map.items():
+            # Sample model.
+            model = items['model']
+            sampler = workers.sample(ref, model)
+            items['sampler']= sampler
 
-    @staticmethod        
-    def predict(model_map):
+    def predict(self, db_path):
         """"""
+        # Create database folder
+        if not os.path.exists(db_path):
+            os.makedirs(db_path)        
+
+        for ref, items in self.model_map.items():
+            # compute predictions from models
+            sampler = items['sampler']
+            sampler = workers.predict(ref, sampler, db_path=db_path)
+    
+    def run(self, gpm, model, n_samples=10, db_path="database/"):
+        """"""        
+        # Create database folder
+        if not os.path.exists(db_path):
+            os.makedirs(db_path)
+    
+        # Get references
+        references = gpm.complete_genotypes
+        
+        # Run models.
+        for ref in references:
+            workers.run(ref, gpm, model, db_path=db_path)
+    
+    def collect(self, filenames):
+        """"""
+        # Read datasets
         dfs = []
-        for key, items in model_map.items():
-            sampler = items["sampler"]
-            sampler.predict()
-            dfs.append(sampler.predictions)
-        # Need to do something with data    
-        data = pd.concat(dfs)
-    
-    @staticmethod
-    def collect(model_map):
-        """"""
-        pass
+        for fname in filenames:
+            df = pd.read_csv(path, index_col=0)
+            dfs.append(df)
+        return pd.concat(dfs)
