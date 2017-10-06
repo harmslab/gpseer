@@ -105,12 +105,13 @@ class DistributedEngine(Engine):
         for ref, count in counts.items():
             # Get data
             data = self.data[ref][genotype]
-            
-            frac = len(data) / count
+            frac = count / len(data)
 
-            # Randomly sample data.
-            df = data.sample(frac=frac, replace=True)
-            dfs.append(df.compute())
+            # Only accept fractions that make sense.
+            if 0 < frac <= 1:
+                # Randomly sample data.
+                df = data.sample(frac=frac, replace=True)
+                dfs.append(df.compute())
         
         # Return DataFrame.
         return pd.concat(dfs)

@@ -85,11 +85,13 @@ class SerialEngine(Engine):
         for ref, count in counts.items():
             # Get data
             data = self.data[ref][genotype]
-        
-            frac = len(data) / count
-            # Randomly sample data.
-            df = data.sample(frac=frac, replace=True)
-            dfs.append(df)
+            frac = count / len(data)
+            
+            # Only accept fractions that make sense.
+            if frac <= 1:
+                # Randomly sample data.
+                df = data.sample(frac=frac, replace=True)
+                dfs.append(df)
         
         # Return DataFrame.
         return pd.concat(dfs)
