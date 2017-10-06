@@ -2,7 +2,7 @@
 
 A Python API that predicts unknown phenotypes genotype-phenotype maps from known phenotypes, powered by [Dask](https://github.com/dask/dask).
 
-Still under development.
+Still under HEAVY development. Please don't use yet. The API will change very rapidly.
 
 `GPSeer`, fits a high-order epistasis model (using Nonlinear regression and classification) to an incomplete genotype-phenotype map. Due to the growing size of experimental genotype-phenotype maps and the necessity to bootstrap these maps, we've built GPSeer on top of `h5py`. This enables us to manage and search large datasets (on the order of Terabytes) efficiently.
 
