@@ -1,31 +1,31 @@
-import os
-import copy
-import warnings
+import os, glob
 import numpy as np
 import pandas as pd
+from functools import wraps
+from collections import Counter
+from gpmap.utils import hamming_distance
 
 from . import workers
+from .engine import Engine
 
 # Import Dask stuff for distributed computing!
 from dask import delayed, compute, dataframe
 from dask.distributed import Client
 
-class DistributedEngine(object):
-    """"""
-    def __init__(self):
+class DistributedEngine(Engine):
+    """GPSeer engine that distributes the work across all resources using Dask.
+    """
+    @wraps(Engine)
+    def __init__(self, *args, **kwargs):
+        super(DistributedEngine, self).__init__(*args, **kwargs)
         self.client = Client()
     
-    def setup(self, gpm, model, db_path):        
-        # Create database folder
-        self.db_path = db_path
-        if not os.path.exists(self.db_path):
-            os.makedirs(self.db_path)
-    
+    def setup(self):    
         # Get references
-        references = gpm.complete_genotypes
+        references = self.gpm.complete_genotypes
 
         # Distribute the work using Dask.
-        items = [delayed(workers.setup)(ref, gpm, model) for ref in references]
+        items = [delayed(workers.setup)(ref, self.gpm, self.model) for ref in references]
         results = compute(*items, get=self.client.get)
         
         # Organize the results
@@ -59,30 +59,60 @@ class DistributedEngine(object):
             sampler = results[i]
             self.model_map[ref]['sampler'] = sampler     
 
-    def predict(self, db_path):
+    def predict(self):
         """"""
         # Distribute the work using Dask.
-        items = [delayed(workers.predict)(ref, items['sampler'], db_path=db_path) for ref, items in self.model_map.items()]
+        items = [delayed(workers.predict)(ref, items['sampler'], db_path=self.db_path) for ref, items in self.model_map.items()]
         results = compute(*items, get=self.client.get)
         
         # Organize the results.
         for i, ref in enumerate(self.model_map.keys()):
             sampler = results[i]
         
-    def run(self, gpm, model, n_samples=10, db_path="database/"):
-        """"""
-        # Create database folder
-        if not os.path.exists(db_path):
-            os.makedirs(db_path)
-
+    def run(self, n_samples=10):
+        """"""        
         # Get references
-        references = gpm.complete_genotypes
+        references = self.gpm.complete_genotypes
         
         # Distribute the work using Dask.
-        items = [delayed(workers.run)(ref, gpm, model, db_path=db_path) for ref in references]
+        items = [delayed(workers.run)(ref, self.gpm, self.model, n_samples=n_samples, db_path=self.db_path) for ref in references]
         results = compute(*items, get=self.client.get)
 
-    def collect(self, db_path):
-        filenames = os.path.join(db_path, "*.csv")
-        df = dataframe.read_csv(filenames)
-        return df
+    def collect(self):
+        # Get references
+        references = self.gpm.complete_genotypes
+        
+        self.data = {}
+        for ref in references:
+            path = os.path.join(self.db_path, "{}.csv".format(ref))
+            df = dataframe.read_csv(path)
+            self.data[ref] = df
+    
+    def sample_posterior(self, genotype, n_samples=10000):
+        """"""
+        # List references states.
+        references = self.gpm.complete_genotypes
+
+        # Generate prior distribution
+        priors = np.array([10**(-hamming_distance(ref, genotype)) for ref in references])
+        priors = priors/priors.sum()
+        
+        # Generate samples 
+        samples = np.random.choice(references, size=n_samples, replace=True, p=priors)
+        counts = Counter(samples)
+
+        dfs = []
+        for ref, count in counts.items():
+            # Get data
+            data = self.data[ref][genotype]
+            
+            frac = len(data) / count
+
+            # Randomly sample data.
+            df = data.sample(frac=frac, replace=True)
+            dfs.append(df.compute())
+        
+        # Return DataFrame.
+        return pd.concat(dfs)
+    
+    

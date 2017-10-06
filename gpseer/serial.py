@@ -1,20 +1,25 @@
 import os, glob
 import numpy as np
 import pandas as pd
+from functools import wraps
+from collections import Counter
+from gpmap.utils import hamming_distance
 
 from . import workers
+from .engine import Engine
 
-class SerialEngine(object):
+class SerialEngine(Engine):
     """"""
-    def setup(self, gpm, model):            
+    @wraps(Engine)
+    def setup(self):            
         # Get references
-        references = gpm.complete_genotypes
+        references = self.gpm.complete_genotypes
         
         # Get models.
         self.model_map = {}
         for i, ref in enumerate(references):
             # Get model from worker function
-            new_model = workers.setup(ref, gpm, model)
+            new_model = workers.setup(ref, self.gpm, self.model)
 
             # Store model
             items = dict(model=new_model)
@@ -34,38 +39,57 @@ class SerialEngine(object):
             sampler = workers.sample(ref, model)
             items['sampler']= sampler
 
-    def predict(self, db_path):
+    def predict(self):
         """"""
-        # Create database folder
-        if not os.path.exists(db_path):
-            os.makedirs(db_path)        
-
         for ref, items in self.model_map.items():
             # compute predictions from models
             sampler = items['sampler']
-            sampler = workers.predict(ref, sampler, db_path=db_path)
+            sampler = workers.predict(ref, sampler, db_path=self.db_path)
     
-    def run(self, gpm, model, n_samples=10, db_path="database/"):
-        """"""        
-        # Create database folder
-        if not os.path.exists(db_path):
-            os.makedirs(db_path)
-    
+    def run(self, n_samples=100):
+        """"""
         # Get references
-        references = gpm.complete_genotypes
+        references = self.gpm.complete_genotypes
         
         # Run models.
-        for ref in references:
-            workers.run(ref, gpm, model, db_path=db_path)
+        for i, ref in enumerate(references):
+            workers.run(ref, self.gpm, self.model, 
+                n_samples=n_samples, 
+                #starting_index=starting_index, 
+                db_path=self.db_path)
     
-    def collect(self, db_path):
+    def collect(self):
         """"""
-        # Create filenames
-        filenames = glob.glob(os.path.join(db_path, "*.csv"))
+        # List references states.
+        references = self.gpm.complete_genotypes
+        self.data = {}
+        for i, ref in enumerate(references):
+            path = os.path.join(self.db_path, "{}.csv".format(ref))
+            df = pd.read_csv(path, index_col=0)
+            self.data[ref] = df
+    
+    def sample_posterior(self, genotype, n_samples=10000):
+        """"""
+        # List references states.
+        references = self.gpm.complete_genotypes
+
+        # Generate prior distribution
+        priors = np.array([10**(-hamming_distance(ref, genotype)) for ref in references])
+        priors = priors/priors.sum()
         
-        # Read datasets
+        # Generate samples 
+        samples = np.random.choice(references, size=n_samples, replace=True, p=priors)
+        counts = Counter(samples)
+
         dfs = []
-        for fname in filenames:
-            df = pd.read_csv(fname, index_col=0)
+        for ref, count in counts.items():
+            # Get data
+            data = self.data[ref][genotype]
+        
+            frac = len(data) / count
+            # Randomly sample data.
+            df = data.sample(frac=frac, replace=True)
             dfs.append(df)
+        
+        # Return DataFrame.
         return pd.concat(dfs)
