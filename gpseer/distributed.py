@@ -10,15 +10,15 @@ from .engine import Engine
 
 # Import Dask stuff for distributed computing!
 from dask import delayed, compute, dataframe
-from dask.distributed import Client
+#from dask.distributed import Client
 
 class DistributedEngine(Engine):
     """GPSeer engine that distributes the work across all resources using Dask.
     """
     @wraps(Engine)
-    def __init__(self, *args, **kwargs):
+    def __init__(self, client=None, *args, **kwargs):
         super(DistributedEngine, self).__init__(*args, **kwargs)
-        self.client = Client()
+        self.client = client
     
     def setup(self):    
         # Get references
