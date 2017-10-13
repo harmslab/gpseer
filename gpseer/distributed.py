@@ -101,7 +101,7 @@ class DistributedEngine(Engine):
         if flat_prior:
             # List references states.
             references = self.gpm.complete_genotypes
-            priors = np.one(len(references)) * 1.0 / len(references)
+            priors = np.ones(len(references)) * 1.0 / len(references)
         else:        
             # List references states.
             references = self.gpm.complete_genotypes
