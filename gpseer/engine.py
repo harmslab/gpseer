@@ -19,8 +19,8 @@ class Engine(object):
                 pickle.dump(self.gpm, f)
             with open('model.pickle', 'wb') as f:
                 pickle.dump(self.model, f)
-        else:
-            raise Exception('db_path already exists.')
+        #else:
+        #    raise Exception('db_path already exists.')
 
     def set_starting_index(self, n_samples):
         # Encoding the indices
