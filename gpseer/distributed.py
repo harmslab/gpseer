@@ -88,19 +88,34 @@ class DistributedEngine(Engine):
             df = dataframe.read_csv(path)
             self.data[ref] = df
     
-    def sample_posterior(self, genotype, n_samples=10000):
+    
+    def histogram_samples(self):
         """"""
-        # List references states.
-        references = self.gpm.complete_genotypes
-
-        # Generate prior distribution
-        priors = np.array([10**(-hamming_distance(ref, genotype)) for ref in references])
-        priors = priors/priors.sum()
         
+        
+    
+    def sample_posterior(self, genotype, flat_prior=False, n_samples=10000):
+        """"""
+        ########### Clever/efficient way to build prior sampling into mix.
+        # Build priors.
+        if flat_prior:
+            # List references states.
+            references = self.gpm.complete_genotypes
+            priors = np.one(len(references)) * 1.0 / len(references)
+        else:        
+            # List references states.
+            references = self.gpm.complete_genotypes
+
+            # Generate prior distribution
+            priors = np.array([10**(-hamming_distance(ref, genotype)) for ref in references])
+            priors = priors/priors.sum()
+            
         # Generate samples 
         samples = np.random.choice(references, size=n_samples, replace=True, p=priors)
         counts = Counter(samples)
-
+        
+        ########### End clever choice.
+        
         dfs = []
         for ref, count in counts.items():
             # Get data

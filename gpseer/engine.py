@@ -1,6 +1,6 @@
 import os
 import numpy as np
-
+import pickle
 
 class EngineError(Exception):
     """Rename exception for problems with distributed client."""
@@ -15,7 +15,13 @@ class Engine(object):
         # Create database folder
         if not os.path.exists(self.db_path):
             os.makedirs(self.db_path)
-    
+            with open('gpm.pickle', 'wb') as f:
+                pickle.dump(self.gpm, f)
+            with open('model.pickle', 'wb') as f:
+                pickle.dump(self.model, f)
+        else:
+            raise Exception('db_path already exists.')
+
     def set_starting_index(self, n_samples):
         # Encoding the indices
         self.prefix_index = len(str(len(self.gpm.complete_genotypes)))
