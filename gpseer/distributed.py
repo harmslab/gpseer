@@ -9,7 +9,7 @@ from . import workers
 from .engine import Engine
 
 # Import Dask stuff for distributed computing!
-from dask import delayed, compute, dataframe
+from dask import delayed, compute, dataframe, array
 #from dask.distributed import Client
 
 class DistributedEngine(Engine):
@@ -87,16 +87,9 @@ class DistributedEngine(Engine):
             path = os.path.join(self.db_path, "{}.csv".format(ref))
             df = dataframe.read_csv(path)
             self.data[ref] = df
-    
-    
-    def histogram_samples(self):
-        """"""
-        
-        
-    
-    def sample_posterior(self, genotype, flat_prior=False, n_samples=10000):
-        """"""
-        ########### Clever/efficient way to build prior sampling into mix.
+
+    def get_model_priors(self, ref):
+        """Get a set of priors for a given genotype."""
         # Build priors.
         if flat_prior:
             # List references states.
@@ -107,11 +100,63 @@ class DistributedEngine(Engine):
             references = self.gpm.complete_genotypes
 
             # Generate prior distribution
-            priors = np.array([10**(-hamming_distance(ref, genotype)) for ref in references])
-            priors = priors/priors.sum()
+            weights = np.array([10**(-hamming_distance(ref, genotype)) for ref in references])
+            weights = weights/weights.sum()    
+    
+        # Build dictionary
+        priors = dict(zip(references, weights)
+        return priors
+    
+    def compute_individual_histograms(self, genotype, bins, range):
+        """Calculate the individual histograms comprised of all samples from all
+        models for a given genotype.
+        
+        Returns
+        -------
+        histograms : dictionary
+            model reference state paired with their histogram data as numpy arrays.
+        """
+        if hasattr(self, "data") is False:
+            raise Exception("Collect data first.")
+        
+        histograms = {}
+        for ref in self.data:
+            data = self.data[ref]
+            hist = array.histogram(data, bins=bins, range=range).compute()
+            histograms[ref] = hist
+        
+        return histograms
+    
+    def approximate_posterior(self, genotype, bins, range, flat_prior=False):
+        """Approximates posterior distribution from samples."""
+        # Calculate histograms for each model
+        histograms = self.compute_individual_histograms(genotype, bins=bins, range=range)
+        
+        # Apply a non-flat prior.
+        if flat_prior if False:
+            # Calculate priors for this dataset
+            priors = self.get_model_priors(genotype)
+            
+            for ref, hist in histograms:
+                # change heights of histogram by prior
+                histograms[ref] = hist * priors[ref]
+    
+        # Sum all histograms to marginalize all models to a single histogram
+        return np.sum(list(histograms.values()))
+    
+    def sample_posterior(self, genotype, flat_prior=False, n_samples=10000):
+        """"""
+        # Calculate priors
+        priors = self.get_model_priors(genotype)
+        
+        # Get elements from priors dictionary
+        references = np.array(priors.keys())
+        weights = np.array(priors.values())
+        
+        ########### Clever/efficient way to build prior sampling into mix.
             
         # Generate samples 
-        samples = np.random.choice(references, size=n_samples, replace=True, p=priors)
+        samples = np.random.choice(references, size=n_samples, replace=True, p=weights)
         counts = Counter(samples)
         
         ########### End clever choice.
