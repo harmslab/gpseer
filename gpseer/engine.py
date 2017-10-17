@@ -14,10 +14,15 @@ class Engine(object):
 
         # Create database folder
         if not os.path.exists(self.db_path):
+            # Create the directory for saving sampler data.
             os.makedirs(self.db_path)
-            with open('gpm.pickle', 'wb') as f:
+            
+            path = os.path.join(self.db_path, 'gpm.pickle')
+            with open(path, 'wb') as f:
                 pickle.dump(self.gpm, f)
-            with open('model.pickle', 'wb') as f:
+            
+            path = os.path.join(self.db_path, 'model.pickle')
+            with open(path, 'wb') as f:
                 pickle.dump(self.model, f)
         #else:
         #    raise Exception('db_path already exists.')

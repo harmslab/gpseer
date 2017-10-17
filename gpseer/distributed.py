@@ -47,6 +47,7 @@ class DistributedEngine(Engine):
         # Organize the results.
         for i, ref in enumerate(self.model_map.keys()):
             model = results[i]
+            self.model_map[ref]['model'] = model
     
     def sample(self):
         """"""
@@ -104,7 +105,7 @@ class DistributedEngine(Engine):
             weights = weights/weights.sum()    
     
         # Build dictionary
-        priors = dict(zip(references, weights)
+        priors = dict(zip(references, weights))
         return priors
     
     def compute_individual_histograms(self, genotype, bins, range):
@@ -133,7 +134,7 @@ class DistributedEngine(Engine):
         histograms = self.compute_individual_histograms(genotype, bins=bins, range=range)
         
         # Apply a non-flat prior.
-        if flat_prior if False:
+        if flat_prior is False:
             # Calculate priors for this dataset
             priors = self.get_model_priors(genotype)
             
