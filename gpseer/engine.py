@@ -2,8 +2,7 @@ import os
 import numpy as np
 import pickle
 
-class EngineError(Exception):
-    """Rename exception for problems with distributed client."""
+from .`utils import EngineError, SubclassError
 
 class Engine(object):
     
@@ -30,3 +29,29 @@ class Engine(object):
         self.prefix_index = len(str(len(self.gpm.complete_genotypes)))
         self.suffix_index = len(str(n_samples))
         self.starting_index = 10**(prefix_digits+suffix_digits)
+
+    def setup(self):
+        """Initialize models for each reference state in the genotype-phenotype map."""
+        raise SubclassError("Must be defined in a subclass.")
+
+    def fit(self):
+        """Call the `fit` methods on all models. GPSeer assumes these are the maximum
+        likelihood solution."""
+        raise SubclassError("Must be defined in a subclass.")
+    
+    def sample(self, n_samples=10):
+        """Sample the posterior distributions for each model using an MCMC sampling
+        method (see the `emcee` library)."""
+        raise SubclassError("Must be defined in a subclass.")
+    
+    def predict(self):
+        """Use the samples to predict all possible phenotypes in the genotype-phenotype map."""
+        raise SubclassError("Must be defined in a subclass.")
+    
+    def run(self, n_samples=10):
+        """Run the full pipeline, from setup to predictig phenotypes."""
+        raise SubclassError("Must be defined in a subclass.")
+
+    def collect(self, n_samples=10):
+        """Collect the results from all models."""
+        raise SubclassError("Must be defined in a subclass.")

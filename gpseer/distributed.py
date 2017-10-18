@@ -21,7 +21,8 @@ class DistributedEngine(Engine):
     def __init__(self, client=None, *args, **kwargs):
         super(DistributedEngine, self).__init__(*args, **kwargs)
         self.client = client
-    
+
+    @wraps(Engine.setup)    
     def setup(self):    
         # Get references
         references = self.gpm.complete_genotypes
@@ -39,9 +40,9 @@ class DistributedEngine(Engine):
             # Store model
             items = dict(model=new_model)
             self.model_map[ref] = items
-    
+            
+    @wraps(Engine.fit)        
     def fit(self):
-        """"""
         # Distribute the work using Dask.
         items = [delayed(workers.fit)(ref, items['model']) for ref, items in self.model_map.items()]
         results = compute(*items, get=self.client.get)
@@ -50,9 +51,9 @@ class DistributedEngine(Engine):
         for i, ref in enumerate(self.model_map.keys()):
             model = results[i]
             self.model_map[ref]['model'] = model
-    
+
+    @wraps(Engine.sample)        
     def sample(self, n_samples=10):
-        """"""
         # Distribute the work using Dask.
         items = [delayed(workers.sample)(ref, items['model'], n_samples=n_samples) for ref, items in self.model_map.items()]
         results = compute(*items, get=self.client.get)   
@@ -62,8 +63,8 @@ class DistributedEngine(Engine):
             sampler = results[i]
             self.model_map[ref]['sampler'] = sampler     
 
+    @wraps(Engine.predict)    
     def predict(self):
-        """"""
         # Distribute the work using Dask.
         items = [delayed(workers.predict)(ref, items['sampler'], db_path=self.db_path) for ref, items in self.model_map.items()]
         results = compute(*items, get=self.client.get)
@@ -72,8 +73,8 @@ class DistributedEngine(Engine):
         for i, ref in enumerate(self.model_map.keys()):
             sampler = results[i]
         
+    @wraps(Engine.run)    
     def run(self, n_samples=10):
-        """"""        
         # Get references
         references = self.gpm.complete_genotypes
         
@@ -81,6 +82,7 @@ class DistributedEngine(Engine):
         items = [delayed(workers.run)(ref, self.gpm, self.model, n_samples=n_samples, db_path=self.db_path) for ref in references]
         results = compute(*items, get=self.client.get)
 
+    @wraps(Engine.collect)    
     def collect(self):
         # Get references
         references = self.gpm.complete_genotypes
@@ -127,7 +129,7 @@ class DistributedEngine(Engine):
         histograms = {}
         for ref in self.data:
             # Get data as dask.array
-            data = self.data[ref].values
+            data = self.data[ref][genotype].values
             useful_data = data[~da.isnan(data)]
             hist, bins = da.histogram(useful_data, bins=bins, range=range)
             histograms[ref] = hist.compute()
@@ -185,5 +187,3 @@ class DistributedEngine(Engine):
         
         # Return DataFrame.
         return pd.concat(dfs)
-    
-    
