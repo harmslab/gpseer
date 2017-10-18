@@ -24,8 +24,6 @@ class Engine(object):
             path = os.path.join(self.db_path, 'model.pickle')
             with open(path, 'wb') as f:
                 pickle.dump(self.model, f)
-        #else:
-        #    raise Exception('db_path already exists.')
 
     def set_starting_index(self, n_samples):
         # Encoding the indices

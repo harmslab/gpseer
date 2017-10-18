@@ -89,7 +89,7 @@ class DistributedEngine(Engine):
             df = dataframe.read_csv(path)
             self.data[ref] = df
 
-    def get_model_priors(self, ref):
+    def get_model_priors(self, genotype, flat_prior=False):
         """Get a set of priors for a given genotype."""
         # Build priors.
         if flat_prior:
@@ -123,8 +123,8 @@ class DistributedEngine(Engine):
         histograms = {}
         for ref in self.data:
             data = self.data[ref]
-            hist = array.histogram(data, bins=bins, range=range).compute()
-            histograms[ref] = hist
+            hist, bins = array.histogram(data, bins=bins, range=range)
+            histograms[ref] = hist.compute()
         
         return histograms
     
@@ -136,14 +136,14 @@ class DistributedEngine(Engine):
         # Apply a non-flat prior.
         if flat_prior is False:
             # Calculate priors for this dataset
-            priors = self.get_model_priors(genotype)
+            priors = self.get_model_priors(genotype, flat_prior=flat_prior)
             
-            for ref, hist in histograms:
+            for ref, hist in histograms.items():
                 # change heights of histogram by prior
                 histograms[ref] = hist * priors[ref]
     
         # Sum all histograms to marginalize all models to a single histogram
-        return np.sum(list(histograms.values()))
+        return np.sum(list(histograms.values()), axis=0)
     
     def sample_posterior(self, genotype, flat_prior=False, n_samples=10000):
         """"""
