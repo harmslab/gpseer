@@ -9,7 +9,9 @@ from . import workers
 from .engine import Engine
 
 # Import Dask stuff for distributed computing!
-from dask import delayed, compute, dataframe, array
+from dask import delayed, compute, array
+import dask.array as da
+import dask.dataframe as ddf
 #from dask.distributed import Client
 
 class DistributedEngine(Engine):
@@ -86,7 +88,7 @@ class DistributedEngine(Engine):
         self.data = {}
         for ref in references:
             path = os.path.join(self.db_path, "{}.csv".format(ref))
-            df = dataframe.read_csv(path)
+            df = ddf.read_csv(path)
             self.data[ref] = df
 
     def get_model_priors(self, genotype, flat_prior=False):
@@ -112,6 +114,8 @@ class DistributedEngine(Engine):
         """Calculate the individual histograms comprised of all samples from all
         models for a given genotype.
         
+        Note: histogram ignores nans
+        
         Returns
         -------
         histograms : dictionary
@@ -123,13 +127,17 @@ class DistributedEngine(Engine):
         histograms = {}
         for ref in self.data:
             data = self.data[ref]
-            hist, bins = array.histogram(data, bins=bins, range=range)
+            useful_data = data[~da.isnan(data)]
+            hist, bins = da.histogram(data, bins=bins, range=range)
             histograms[ref] = hist.compute()
         
         return histograms
     
     def approximate_posterior(self, genotype, bins, range, flat_prior=False):
-        """Approximates posterior distribution from samples."""
+        """Approximates posterior distribution from samples.
+        
+        Note: histogram ignores nans
+        """
         # Calculate histograms for each model
         histograms = self.compute_individual_histograms(genotype, bins=bins, range=range)
         
