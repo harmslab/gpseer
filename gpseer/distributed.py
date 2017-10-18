@@ -51,10 +51,10 @@ class DistributedEngine(Engine):
             model = results[i]
             self.model_map[ref]['model'] = model
     
-    def sample(self):
+    def sample(self, n_samples=10):
         """"""
         # Distribute the work using Dask.
-        items = [delayed(workers.sample)(ref, items['model']) for ref, items in self.model_map.items()]
+        items = [delayed(workers.sample)(ref, items['model'], n_samples=n_samples) for ref, items in self.model_map.items()]
         results = compute(*items, get=self.client.get)   
         
         # Organize the results.
@@ -126,9 +126,10 @@ class DistributedEngine(Engine):
         
         histograms = {}
         for ref in self.data:
-            data = self.data[ref]
+            # Get data as dask.array
+            data = self.data[ref].values
             useful_data = data[~da.isnan(data)]
-            hist, bins = da.histogram(data, bins=bins, range=range)
+            hist, bins = da.histogram(useful_data, bins=bins, range=range)
             histograms[ref] = hist.compute()
         
         return histograms
