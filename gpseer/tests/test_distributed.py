@@ -38,3 +38,30 @@ class TestEngine(object):
         model = engine.model_map['00']['model']
         assert hasattr(model, 'coef_')
         assert len(model.coef_) > 0
+        s
+    def test_sample(self, client, gpm, model):
+        engine = DistributedEngine(client, gpm, model)
+        engine.setup()
+        engine.fit()
+        engine.sample(n_samples=5)
+        
+        # Check sampler was added to mapping system
+        mapping_item = engine.model_map['00']
+        assert 'sampler' in mapping_item
+        
+        # Assert
+        sampler = mapping_item['sampler']
+        assert hasattr(sampler, 'samples')
+
+    def test_predict(self, client, gpm, model):
+        engine = DistributedEngine(client, gpm, model)
+        engine.setup()
+        engine.fit
+        engine.sample(n_samples=5)
+        engine.predict()
+        
+         
+        
+    def test_run(self, client, gpm, model):
+        engine = DistributedEngine(client, gpm, model)
+        engine.run(n_samples=5)
