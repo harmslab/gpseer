@@ -23,9 +23,14 @@ class DistributedEngine(Engine):
         self.client = client
 
     @wraps(Engine.setup)    
-    def setup(self):    
-        # Get references
-        references = self.gpm.complete_genotypes
+    def setup(self, references=None):
+        # Get references for all models.
+        if references is None    
+            # Get references
+            references = self.gpm.complete_genotypes
+            
+        # Store the references
+        self.references = references
 
         # Distribute the work using Dask.
         items = [delayed(workers.setup)(ref, self.gpm, self.model) for ref in references]
@@ -42,7 +47,7 @@ class DistributedEngine(Engine):
             self.model_map[ref] = items
             
     @wraps(Engine.fit)        
-    def fit(self):
+    def run_ml_fits(self):
         # Distribute the work using Dask.
         items = [delayed(workers.fit)(ref, items['model']) for ref, items in self.model_map.items()]
         results = compute(*items, get=self.client.get)
@@ -52,8 +57,12 @@ class DistributedEngine(Engine):
             model = results[i]
             self.model_map[ref]['model'] = model
 
+    @wraps(Engine.run)
+    def run_ml_predictions(self):
+        pass
+
     @wraps(Engine.sample)        
-    def sample(self, n_samples=10):
+    def sample_fits(self, n_samples=10):
         # Distribute the work using Dask.
         items = [delayed(workers.sample)(ref, items['model'], n_samples=n_samples) for ref, items in self.model_map.items()]
         results = compute(*items, get=self.client.get)   
@@ -64,7 +73,7 @@ class DistributedEngine(Engine):
             self.model_map[ref]['sampler'] = sampler     
 
     @wraps(Engine.predict)    
-    def predict(self):
+    def sample_predictions(self):
         # Distribute the work using Dask.
         items = [delayed(workers.predict)(ref, items['sampler'], db_path=self.db_path) for ref, items in self.model_map.items()]
         results = compute(*items, get=self.client.get)
@@ -73,10 +82,14 @@ class DistributedEngine(Engine):
         for i, ref in enumerate(self.model_map.keys()):
             sampler = results[i]
         
+
+        
+        
+        
     @wraps(Engine.run)    
-    def run(self, n_samples=10):
+    def run_sampler(self, n_samples=10):
         # Get references
-        references = self.gpm.complete_genotypes
+        references = self.references
         
         # Distribute the work using Dask.
         items = [delayed(workers.run)(ref, self.gpm, self.model, n_samples=n_samples, db_path=self.db_path) for ref in references]
@@ -85,7 +98,7 @@ class DistributedEngine(Engine):
     @wraps(Engine.collect)    
     def collect(self):
         # Get references
-        references = self.gpm.complete_genotypes
+        references = self.references
         
         self.data = {}
         for ref in references:
@@ -98,11 +111,11 @@ class DistributedEngine(Engine):
         # Build priors.
         if flat_prior:
             # List references states.
-            references = self.gpm.complete_genotypes
+            references = self.references
             priors = np.ones(len(references)) * 1.0 / len(references)
         else:        
             # List references states.
-            references = self.gpm.complete_genotypes
+            references = self.references
 
             # Generate prior distribution
             weights = np.array([10**(-hamming_distance(ref, genotype)) for ref in references])

@@ -6,17 +6,38 @@
 GPSeer
 ======
 
-GPSeer is a Python library for "filling-in" sparsely sampled genotype-phenotype maps.
+GPSeer provides a Python object that predicts phenotypes in sparsely sampled genotype-phenotypes maps.
 
-How does it work?
+Maximum Likelihood Approach
+---------------------------
+
+
+.. code-block:: python
+
+  from gpseer import GPSeer
+
+  # Initialize the seer
+  seer = GPSeer(gpm, model)
+
+  # Setup the models. This constructs a genotype-phenotype map from all reference states.
+  seer.setup()
+  
+  # 
+
+
+Bayesian Approach
 -----------------
 
 
-How fast is it?
----------------
+Parallelized Computation
+------------------------
 
-It sits on top of Dask_  distributed computing library to parallelize the problem
-as much as possible.
+The computations in GPSeer are extremely computationally expensive. It requires constructing
+unique epistasis models for all missing phenotypes. Fortunately, 
+these computations are also easy to parallelize. GPSeer 
+
+GPSeer is built on top of Dask_. It easily distributes the computing across all
+resources provided.
 
 Contents:
 
@@ -25,9 +46,9 @@ Contents:
 
 
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. Indices and tables
+.. ==================
+.. 
+.. * :ref:`genindex`
+.. * :ref:`modindex`
+.. * :ref:`search`

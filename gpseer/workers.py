@@ -7,6 +7,7 @@ from gpmap import GenotypePhenotypeMap
 from epistasis.sampling.bayesian import BayesianSampler
 
 def setup(reference, gpm, model):
+    """Initializes an epistasis model and genotype-phenotype map object."""
     # Build a GenotypePhenotypeMap with a new reference state.
     new_gpm = GenotypePhenotypeMap( reference, # New reference state.
         gpm.genotypes,
@@ -25,30 +26,29 @@ def setup(reference, gpm, model):
     return new_model
 
 def fit(reference, model):
+    """Fit the model."""
     # Ignore warnings.
     warnings.simplefilter('ignore', RuntimeWarning)
     # Fit a model
     model.fit()
     return model
 
-def sample(reference, model, n_samples=10):
+def sample_model(reference, model, n_samples=10):
+    """Use the BayesianSampler to possible models given the data."""
     # Attach Bayesian Sampler and sample!
     sampler = BayesianSampler(model)
     sampler.sample(n_samples)
     return sampler
     
-def predict(reference, sampler, db_path="database/"):
-    # Path to write out predictions to disk
-    path = os.path.join(db_path, "{}.csv".format(reference))
-    
+def sample_predictions(reference, sampler): 
+    """Use the sampled models to predict phenotypes."""   
     # Predict and write.
     sampler.predict()
-    sampler.predictions.to_csv(path)
     return sampler
 
-def run(reference, gpm, model, n_samples=10, db_path="database/"):
+def run(reference, gpm, model, n_samples=10):
     # Run worker pipeline on lone worker!
     new_model = setup(reference, gpm, model)
     new_model = fit(reference, new_model)
     sampler = sample(reference, new_model, n_samples=n_samples)
-    sampler = predict(reference, sampler, db_path=db_path)
+    sampler = predict(reference, sampler)
