@@ -22,11 +22,24 @@ Maximum Likelihood Approach
   # Setup the models. This constructs a genotype-phenotype map from all reference states.
   seer.setup()
   
-  # 
-
+  # Run a Maximum likelihood group of models to predict phenotypes
+  seer.run_ml_pipeline()
 
 Bayesian Approach
 -----------------
+
+.. code-block:: python
+
+  from gpseer import GPSeer
+
+  # Initialize the seer
+  seer = GPSeer(gpm, model)
+
+  # Setup the models.
+  seer.setup()
+  
+  # 
+  seer.run_bayesian_pipeline()
 
 
 Parallelized Computation
@@ -44,6 +57,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   _pages/
 
 
 .. Indices and tables

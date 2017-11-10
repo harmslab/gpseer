@@ -47,7 +47,7 @@ class DistributedEngine(Engine):
             self.model_map[ref] = items
             
     @wraps(Engine.fit)        
-    def run_ml_fits(self):
+    def run_fits(self):
         # Distribute the work using Dask.
         items = [delayed(workers.fit)(ref, items['model']) for ref, items in self.model_map.items()]
         results = compute(*items, get=self.client.get)
@@ -58,7 +58,10 @@ class DistributedEngine(Engine):
             self.model_map[ref]['model'] = model
 
     @wraps(Engine.run)
-    def run_ml_predictions(self):
+    def run_predictions(self):
+        pass
+
+    def run_ml_pipeline(self):
         pass
 
     @wraps(Engine.sample)        
@@ -82,12 +85,8 @@ class DistributedEngine(Engine):
         for i, ref in enumerate(self.model_map.keys()):
             sampler = results[i]
         
-
-        
-        
-        
     @wraps(Engine.run)    
-    def run_sampler(self, n_samples=10):
+    def run_bayesian_pipeline(self, n_samples=10):
         # Get references
         references = self.references
         

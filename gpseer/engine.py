@@ -29,17 +29,22 @@ class Engine(object):
         """Initialize models for each reference state in the genotype-phenotype map."""
         raise SubclassError("Must be defined in a subclass.")
 
-    def run_ml_fits(self):
+    def run_fits(self):
         """Call the `fit` methods on all models. GPSeer assumes these are the maximum
         likelihood solution."""
         raise SubclassError("Must be defined in a subclass.")
     
-    def run_ml_predictions(self):
+    def run_predictions(self):
         """Call the `predict` methods on all models. GPSeer assumes these are the maximum
         likelihood solution."""
         raise SubclassError("Must be defined in a subclass.")    
     
-    def sample_models(self, n_samples=10):
+    def run_ml_pipeline(self):
+        """Call run_fits and run_predictions together. Useful for distributed computing. 
+        Prevents multiple calls to nodes."""
+        raise SubclassError("Must be defined in a subclass.")    
+
+    def sample_fits(self, n_samples=10):
         """Sample the posterior distributions for each model using an MCMC sampling
         method (see the `emcee` library)."""
         raise SubclassError("Must be defined in a subclass.")
@@ -47,11 +52,12 @@ class Engine(object):
     def sample_predictions(self):
         """Use the samples to predict all possible phenotypes in the genotype-phenotype map."""
         raise SubclassError("Must be defined in a subclass.")
-    
-    def run(self, n_samples=10):
-        """Run the full pipeline, from setup to predictig phenotypes."""
-        raise SubclassError("Must be defined in a subclass.")
 
+    def sample_bayes_pipeline(self):
+        """Call sample_fits and sample_predictions together. Useful for distributed computing. 
+        Prevents multiple calls to nodes."""
+        raise SubclassError("Must be defined in a subclass.")   
+    
     def collect(self, n_samples=10):
         """Collect the results from all models."""
         raise SubclassError("Must be defined in a subclass.")
