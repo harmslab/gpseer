@@ -8,6 +8,9 @@ class Engine(object):
     """Base class for running sampling on genotype-phenotype maps.
     """
     def __init__(self, gpm, model, db_path="database/"):
+        if model.model_type != 'local':
+            raise Exception('model_type in model must be set to `local`.')
+        
         self.gpm = gpm
         self.model = model
         self.db_path = db_path
@@ -57,7 +60,3 @@ class Engine(object):
         """Call sample_fits and sample_predictions together. Useful for distributed computing. 
         Prevents multiple calls to nodes."""
         raise SubclassError("Must be defined in a subclass.")   
-    
-    def collect(self, n_samples=10):
-        """Collect the results from all models."""
-        raise SubclassError("Must be defined in a subclass.")
