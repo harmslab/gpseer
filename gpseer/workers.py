@@ -75,21 +75,20 @@ def run_predictions(model, genotypes='missing'):
     
     # Predict using current model.
     p = model.predict(X=genotypes)
-    data = dict(zip(g, p))
     
     # Return results as DataFrame
+    data = dict(zip(g, p))
     predictions = pd.DataFrame(data, index=['max_likelihood'])
     return predictions
-# 
-# def run_ml_pipeline(model, genotypes='missing'):
-#     """Run fits and predictions in series without leaving current node."""
-#     # Run the ML fits
-#     model = run_fits(model)
-#     
-#     # Make predictions based on fits
-#     predictions = run_predictions(model)
-#     return model, predictions
-# 
+
+def run_ml_pipeline(reference, gpm, model, genotypes='missing'):
+    """Run fits and predictions in series without leaving current node."""
+    # Run the ML fits
+    model = setup(reference, gpm, model)
+    model = run_fits(model)
+    predictions = run_predictions(model, genotypes=genotypes)
+    return model, predictions
+
 # def sample_model(model, n_samples=10):
 #     """Use the BayesianSampler to possible models given the data."""
 #     # Initialize a Bayesian Sampler.

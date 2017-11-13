@@ -75,6 +75,21 @@ class DistributedEngine(Engine):
         # Zip predictions
         self.map_of_predictions = dict(zip(references, results))
 
+    @wraps(Engine.run_ml_pipeline)
+    def run_ml_pipeline(self, references=None, genotypes='missing'):
+        # Get references for all models.
+        if references is None:
+            # Get references
+            references = self.gpm.complete_genotypes
+            
+        # Run pipeline for each reference state.
+        processes = [delayed(workers.run_ml_pipeline)(ref, self.gpm, self.model) for ref in references]
+        results = compute(*processes, get=self.client.get)
+        
+        # Collect results
+        self.map_of_models = {ref : results[i][0] for i, ref in enumerate(references)}
+        self.map_of_predictions = {ref : results[i][1] for i, ref in enumerate(references)}
+
     @property
     def results(self):
         """Get dataframe of results."""
@@ -92,7 +107,6 @@ class DistributedEngine(Engine):
         col = list(predictions[0])        
         ml = [self.map_of_predictions[c][c] for c in col]
         output = dict(zip(col, ml))
-        
         
         return pd.DataFrame(output, index=['max_likelihood'])
 
