@@ -88,13 +88,32 @@ def run_pipeline(reference, gpm, model, genotypes='missing'):
     predictions = run_predictions(model, genotypes=genotypes)
     return model, predictions
 
-def sample_fits(model, n_samples=10):
-    """Use the BayesianSampler to possible models given the data."""
+def sample_fits(model, n_samples=10, previous_state=None):
+    """Use the BayesianSampler to possible models given the data.
+    
+    Parameters
+    ----------
+    model : 
+        initialized epistasis model with a genotype-phenotype map.
+    n_samples : int
+        number of steps to take in sampler.
+    previous_state : dict
+        dictionary with data from latest step in MCMC walk. Must have 'rstate', 'lnprob',
+        and 'pos' as keys.
+        
+    Returns
+    -------
+    samples : ndarray
+        Samples from MCMC walk for all model parameters. shape = (n_samples, number of coefs) 
+    end_state : dict
+        dictionary describing the final step in the MCMC walk. Has keys 'rstate',
+        'lnprob', and 'pos' as keys.
+    """
     # Initialize a Bayesian Sampler.
     sampler = BayesianSampler(model)
     
     # Sample models using Bayesian sampler and return
-    samples, end_state = sampler.sample(n_samples, n_steps=n_samples)
+    samples, end_state = sampler.sample(n_steps=n_samples, previous_state=previous_state)
     return samples, end_state
 
 def sample_predictions(model, samples, bins, genotypes='missing'): 

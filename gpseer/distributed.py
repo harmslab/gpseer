@@ -93,14 +93,14 @@ class DistributedEngine(Engine):
         
         # Distribute the work using Dask.
         processes = [delayed(workers.sample_fits)(model, n_samples=n_samples) for model in models]
-        results = compute(*processes, get=self.client.get) 
-
-        self.map_of_model_samples = {ref : results[0] for i, ref in enumerate(references)}
-        self.map_of_mcmc_states = {ref : results[1] for i, ref in enumerate(references)}
-        return self.map_of_model_samples
+        results = compute(*processes, get=self.client.get)
+        
+        map_of_model_samples = {ref : results[i][0] for i, ref in enumerate(references)}
+        self.map_of_mcmc_states = {ref : results[i][1] for i, ref in enumerate(references)}
+        return map_of_model_samples
 
     @wraps(Engine.sample_predictions)    
-    def sample_predictions(self, bins, genotypes='missing'):
+    def sample_predictions(self, samples, bins, genotypes='missing'):
         # Proper order check
         if hasattr(self, 'map_of_model_samples') is False:
             raise Exception('Try running `sample_fits` before running this method.')        
