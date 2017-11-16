@@ -14,6 +14,7 @@ class Engine(object):
         self.gpm = gpm
         self.model = model
         self.db_path = db_path
+        self.references = self.gpm.complete_genotypes
 
         # Create database folder
         if not os.path.exists(self.db_path):
@@ -42,7 +43,7 @@ class Engine(object):
         likelihood solution."""
         raise SubclassError("Must be defined in a subclass.")    
     
-    def run_ml_pipeline(self):
+    def run_pipeline(self):
         """Call run_fits and run_predictions together. Useful for distributed computing. 
         Prevents multiple calls to nodes."""
         raise SubclassError("Must be defined in a subclass.")    
@@ -56,7 +57,7 @@ class Engine(object):
         """Use the samples to predict all possible phenotypes in the genotype-phenotype map."""
         raise SubclassError("Must be defined in a subclass.")
 
-    def sample_bayes_pipeline(self):
+    def sample_pipeline(self):
         """Call sample_fits and sample_predictions together. Useful for distributed computing. 
         Prevents multiple calls to nodes."""
         raise SubclassError("Must be defined in a subclass.")   

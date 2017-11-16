@@ -18,7 +18,6 @@ def setup(reference, gpm, model):
     Returns
     -------
     new_model :
-    
     """
     # Build a GenotypePhenotypeMap with a new reference state.
     new_gpm = GenotypePhenotypeMap(reference, # New reference state.
@@ -81,7 +80,7 @@ def run_predictions(model, genotypes='missing'):
     predictions = pd.DataFrame(data, index=['max_likelihood'])
     return predictions
 
-def run_ml_pipeline(reference, gpm, model, genotypes='missing'):
+def run_pipeline(reference, gpm, model, genotypes='missing'):
     """Run fits and predictions in series without leaving current node."""
     # Run the ML fits
     model = setup(reference, gpm, model)
@@ -89,44 +88,64 @@ def run_ml_pipeline(reference, gpm, model, genotypes='missing'):
     predictions = run_predictions(model, genotypes=genotypes)
     return model, predictions
 
-# def sample_model(model, n_samples=10):
-#     """Use the BayesianSampler to possible models given the data."""
-#     # Initialize a Bayesian Sampler.
-#     sampler = BayesianSampler(model)
-#     
-#     # Sample models using Bayesian sampler and return
-#     samples, end_state = sampler.sample(n_samples, n_steps=n_samples)
-#     
-#     return samples, end_state
-#     
-# def sample_predictions(model, samples, bins, genotypes='missing'): 
-#     """Get the prediction posterior distributions from the samples.
-#     
-#     Parameters
-#     ----------
-#     
-#     """   
-#     # Construct the genotypes map.
-#     if genotypes in ['missing', 'complete', 'obs']:
-#         
-#         if genotypes == 'missing':
-#             data = {'genotypes':model.gpm.missing_genotypes}
-#         elif genotypes == 'obs':
-#             data = {'genotypes':model.gpm.genotypes}
-#         else:
-#             data = {'genotypes':model.gpm.complete_genotypes}
-#     
-#     else:
-#         raise ValueError("genotypes must be 'missing', 'obs', or 'complete'.")    
-#     
-#     # Predict and write.
-#     for i, sample in enumerate(data):
-#         predictions = model.hypothesis(X=genotypes, thetas=samples[i])
-#     
-#         
-#     
-#     
-#     return sampler
+def sample_fits(model, n_samples=10):
+    """Use the BayesianSampler to possible models given the data."""
+    # Initialize a Bayesian Sampler.
+    sampler = BayesianSampler(model)
+    
+    # Sample models using Bayesian sampler and return
+    samples, end_state = sampler.sample(n_samples, n_steps=n_samples)
+    return samples, end_state
+
+def sample_predictions(model, samples, bins, genotypes='missing'): 
+    """Get the prediction posterior distributions from the samples.
+    
+    Parameters
+    ----------
+    model : 
+        initialized epistasis model with a genotype-phenotype map.
+    samples : 
+        model parameters sampled by `sample_fits`
+    bins : np.array
+        Bins to use for histogram (must be an array)
+    genotypes : str
+        genotypes to predict.
+        
+    Returns
+    -------
+    predictions_df : pandas.DataFrame
+        A dataframe with genotypes as columns, and bins as the index.
+    """   
+    if genotypes in ['missing', 'complete', 'obs']:
+
+        if genotypes == 'missing':
+            g = model.gpm.missing_genotypes
+        elif genotypes == 'obs':
+            g = model.gpm.genotypes
+        else:
+            g = model.gpm.complete_genotypes
+    
+    else:
+        raise ValueError("genotypes must be 'missing', 'obs', or 'complete'.")
+    
+    # Initialize a predictions array. (rows are samples, and cols are genotypes)
+    predictions = np.empty((len(samples), len(g)), dtype=float)
+    
+    # Predict and write.
+    for i, sample in enumerate(data):
+        # Get predictions
+        p_sample = model.hypothesis(X=genotypes, thetas=samples[i])
+        
+        # Broadcast predictions into data array.
+        predictions[:, i] = p_sample
+        
+    # histogram predictions array along the genotypes axis
+    hists = np.histogram(predictions, axis=1)
+    
+    # Map genotype to their histogram
+    data = dict(zip(g, hists))    
+    predictions_df = pd.DataFrame(data=data, index=bins)
+    return predictions_df
 # 
 # def sample_bayes_pipeline(reference, gpm, model, n_samples=10):
 #     # Run worker pipeline on lone worker!
