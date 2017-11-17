@@ -24,8 +24,16 @@ class DistributedEngine(Engine):
     @wraps(Engine.setup)    
     def setup(self):
         # Distribute the work using Dask.
-        items = [delayed(workers.setup)(ref, self.gpm, self.model) for ref in self.references]
-        results = compute(*items, get=self.client.get)
+        processes = []
+        for ref in self.references:
+            # Build process for this model.            
+            process = delayed(workers.setup)(ref, self.gpm, self.model)
+            
+            # Add process to list of processes
+            processes.append(process)
+        
+        # Compute processes on distributed network.
+        results = compute(*processes, get=self.client.get)    
         
         # Organize the results
         self.map_of_models = {}
@@ -38,96 +46,126 @@ class DistributedEngine(Engine):
             
     @wraps(Engine.run_fits)        
     def run_fits(self):
-        # Unzip map_of_models dictionary
-        references = list(self.map_of_models.keys())
-        models = list(self.map_of_models.values())
-        
         # Distribute the work using Dask.
-        processes = [delayed(workers.run_fits)(model) for model in models]
-        results = compute(*processes, get=self.client.get)
+        processes = []
+        for ref in self.references:
+            # Build process for this model.            
+            process = delayed(workers.run_fits)(self.map_of_models[ref])
+            
+            # Add process to list of processes
+            processes.append(process)
+        
+        # Compute processes on distributed network.
+        results = compute(*processes, get=self.client.get)        
         
         # Zip map_of_models back
-        self.map_of_models = dict(zip(references, results))
+        self.map_of_models = dict(zip(self.references, results))
 
     @wraps(Engine.run_predictions)
-    def run_predictions(self, genotypes='missing'):
-        # Proper order check
-        if hasattr(self, 'map_of_models') is False:
-            raise Exception('Try running `run_fits` before running this method.')
-        
-        # Unzip map_of_models dictionary
-        references = list(self.map_of_models.keys())
-        models = list(self.map_of_models.values())
-        
+    def run_predictions(self, genotypes='missing'):        
         # Distribute the work using Dask.
-        processes = [delayed(workers.run_predictions)(model, genotypes=genotypes) for model in models]
+        processes = []
+        for ref in self.references:
+            # Build process for this model.            
+            process = delayed(workers.run_predictions)(self.map_of_models[ref], 
+                genotypes=genotypes)
+            
+            # Add process to list of processes
+            processes.append(process)
+        
+        # Compute processes on distributed network.
         results = compute(*processes, get=self.client.get)
 
         # Zip predictions
-        self.map_of_predictions = dict(zip(references, results))
+        self.map_of_predictions = dict(zip(self.references, results))
 
     @wraps(Engine.run_pipeline)
-    def run_pipeline(self, genotypes='missing'):
-        # Get references for all models.
-        if references is None:
-            # Get references
-            references = self.gpm.complete_genotypes
+    def run_pipeline(self, genotypes='missing'):            
+        # Distribute the work using Dask.
+        processes = []
+        for ref in self.references:
+            # Build process for this model.            
+            process = delayed(workers.run_pipeline)(ref, self.gpm, self.model)
             
-        # Run pipeline for each reference state.
-        processes = [delayed(workers.run_pipeline)(ref, self.gpm, self.model) for ref in references]
-        results = compute(*processes, get=self.client.get)
+            # Add process to list of processes
+            processes.append(process)
         
+        # Compute processes on distributed network.
+        results = compute(*processes, get=self.client.get)
+
         # Collect results
-        self.map_of_models = {ref : results[i][0] for i, ref in enumerate(references)}
-        self.map_of_predictions = {ref : results[i][1] for i, ref in enumerate(references)}
+        self.map_of_models = {ref : results[i][0] for i, ref in enumerate(self.references)}
+        self.map_of_predictions = {ref : results[i][1] for i, ref in enumerate(self.references)}
 
     @wraps(Engine.sample_fits)        
-    def sample_fits(self, n_samples=10):
+    def sample_fits(self, n_samples):
         # Proper order check
         if hasattr(self, 'map_of_models') is False:
             raise Exception('Try running `run_fits` before running this method.')        
-
-        # Unzip map_of_models dictionary
-        references = list(self.map_of_models.keys())
-        models = list(self.map_of_models.values())
         
         # Distribute the work using Dask.
-        processes = [delayed(workers.sample_fits)(model, n_samples=n_samples) for model in models]
+        processes = []
+        for ref in self.references:
+            # Build process for this model.            
+            process = delayed(workers.sample_fits)(self.map_of_models[ref], 
+                n_samples=n_samples, 
+                previous_state=self.map_of_mcmc_states[ref])
+            
+            # Add process to list of processes
+            processes.append(process)
+        
+        # Compute processes on distributed network.
         results = compute(*processes, get=self.client.get)
         
-        map_of_model_samples = {ref : results[i][0] for i, ref in enumerate(references)}
-        self.map_of_mcmc_states = {ref : results[i][1] for i, ref in enumerate(references)}
+        map_of_model_samples = {ref : results[i][0] for i, ref in enumerate(self.references)}
+        self.map_of_mcmc_states = {ref : results[i][1] for i, ref in enumerate(self.references)}
         return map_of_model_samples
 
     @wraps(Engine.sample_predictions)    
-    def sample_predictions(self, samples, bins, genotypes='missing'):
-        # Proper order check
-        if hasattr(self, 'map_of_model_samples') is False:
-            raise Exception('Try running `sample_fits` before running this method.')        
-        
-        # Unzip map_of_models dictionary
-        references = list(self.map_of_models.keys())
-        models = list(self.map_of_models.values())
-        samples = list(self.map_of_model_samples.values())
-        
+    def sample_predictions(self, map_of_model_samples, bins, genotypes='missing'):
         # Distribute the work using Dask.
-        processes = [delayed(workers.sample_predictions)(model, samples, 
-            bins=bins, genotypes=genotypes) for model in models]
+        processes = []
+        for ref in self.references:
+            process = delayed(workers.sample_predictions)(
+                self.map_of_models[ref], 
+                map_of_model_samples[ref], 
+                bins, genotypes=genotypes) 
+            
+            # Add process to list of processes
+            processes.append(process)
         
-        results = compute(*processes, get=self.client.get) 
+        # Compute processes on distributed network.
+        results = compute(*processes, get=self.client.get)
         
         # Organize the results.
-        for i, ref in enumerate(self.model_map.keys()):
-            sampler = results[i]
-    #     
-    # @wraps(Engine.sample_bayes_pipeline)    
-    # def sample_bayes_pipeline(self, n_samples=10):
-    #     # Get references
-    #     references = self.references
-    #     
-    #     # Distribute the work using Dask.
-    #     items = [delayed(workers.run)(ref, self.gpm, self.model, n_samples=n_samples, db_path=self.db_path) for ref in references]
-    #     results = compute(*items, get=self.client.get)
+        self.map_of_sampled_predictions = {ref : results[i] for i, ref in enumerate(self.references)}
+        
+    @wraps(Engine.sample_pipeline)    
+    def sample_pipeline(self, n_samples, bins, genotypes='missing'):
+        # Distribute the work using Dask.
+        processes = []
+        for ref in self.references:
+            process = delayed(workers.sample_pipeline)(ref, self.gpm, self.model,
+                n_samples, bins, 
+                genotypes=genotypes,
+                previous_state=self.map_of_mcmc_states[ref])
+                
+            # Add process to list of processes
+            processes.append(process)
+        
+        # Compute processes on distributed network.
+        results = compute(*processes, get=self.client.get)
+
+        # Parse results from workers.
+        self.map_of_models = {}
+        self.map_of_mcmc_states = {}
+        self.map_of_predictions = {}
+        self.map_of_sampled_predictions = {}
+        for i, ref in enumerate(self.references):
+            self.map_of_models[ref] = results[i][0]
+            self.map_of_mcmc_states[ref] = results[i][1]
+            self.map_of_predictions[ref] = results[i][2]
+            self.map_of_sampled_predictions[ref] = results[i][3]
     # 
     # def _get_model_priors(self, genotype, flat_prior=False):
     #     """Get a set of priors for a given genotype."""
@@ -152,19 +190,33 @@ class DistributedEngine(Engine):
     @property
     def results(self):
         """Get dataframe of results."""
-        # Proper order check
-        if hasattr(self, 'map_of_predictions') is False:
-            raise Exception('Try running `run_fits` before running this method.')        
 
-        output = {}
-        
-        # Unzip map_of_models dictionary
-        references = list(self.map_of_predictions.keys())
-        predictions = list(self.map_of_predictions.values())        
+        if len(self.map_of_predictions) != len(self.map_of_sampled_predictions):
+            raise Exception    
         
         # Get columns for results df (genotypes)
-        col = list(predictions[0])        
-        ml = [self.map_of_predictions[c][c] for c in col]
-        output = dict(zip(col, ml))
+        # col = list(predictions[0])        
+        # ml = [self.map_of_predictions[c][c] for c in col]
+        # output = dict(zip(col, ml))
         
-        return pd.DataFrame(output, index=['max_likelihood'])
+        # Get example predictions DataFrame
+        df = list(self.map_of_sampled_predictions.values())[0]
+        columns = df.columns
+        index = list(df.index)
+        
+        # Build output array
+        data = {}
+        for col in columns:
+            posterior = []
+            for ref in self.references:
+                posterior.append(np.array(self.map_of_sampled_predictions[ref][col]))
+            posterior = list(np.sum(posterior, axis=0))
+            
+            ml_val = [self.map_of_predictions[col][col]['max_likelihood']]
+            print(ml_val, posterior)
+            # Concatenate data
+            col_data = ml_val + posterior
+            data[col] = col_data
+            
+        
+        return pd.DataFrame(data, index=['max_likelihood'] + index)

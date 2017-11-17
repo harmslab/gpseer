@@ -138,37 +138,45 @@ def sample_predictions(model, samples, bins, genotypes='missing'):
     if genotypes in ['missing', 'complete', 'obs']:
 
         if genotypes == 'missing':
-            g = model.gpm.missing_genotypes
+            gs = model.gpm.missing_genotypes
         elif genotypes == 'obs':
-            g = model.gpm.genotypes
+            gs = model.gpm.genotypes
         else:
-            g = model.gpm.complete_genotypes
+            gs = model.gpm.complete_genotypes
     
     else:
         raise ValueError("genotypes must be 'missing', 'obs', or 'complete'.")
     
     # Initialize a predictions array. (rows are samples, and cols are genotypes)
-    predictions = np.empty((len(samples), len(g)), dtype=float)
+    predictions = np.empty((len(samples), len(gs)), dtype=float)
     
     # Predict and write.
-    for i, sample in enumerate(data):
+    for i, sample in enumerate(samples):
         # Get predictions
-        p_sample = model.hypothesis(X=genotypes, thetas=samples[i])
+        p_sample = model.hypothesis(X=genotypes, thetas=sample)
         
         # Broadcast predictions into data array.
-        predictions[:, i] = p_sample
+        predictions[i, :] = p_sample
         
     # histogram predictions array along the genotypes axis
-    hists = np.histogram(predictions, axis=1)
+    data = {g : np.histogram(predictions[:, i], bins=bins)[0] for i, g in enumerate(gs)}
     
-    # Map genotype to their histogram
-    data = dict(zip(g, hists))    
-    predictions_df = pd.DataFrame(data=data, index=bins)
+    # Return a dataframe.
+    predictions_df = pd.DataFrame(data=data, index=bins[1:])
     return predictions_df
-# 
-# def sample_bayes_pipeline(reference, gpm, model, n_samples=10):
-#     # Run worker pipeline on lone worker!
-#     new_model = setup(reference, gpm, model)
-#     new_model = fit(reference, new_model)
-#     sampler = sample(reference, new_model, n_samples=n_samples)
-#     sampler = predict(reference, sampler)
+
+def sample_pipeline(reference, gpm, model, n_samples, bins, genotypes='missing', 
+    previous_state=None):
+    """Sample an epistasis model 
+    """
+    # Run ML pipeline to get ML solutions.
+    new_model, ml_predictions = run_pipeline(reference, gpm, model)
+    
+    # Sample model parameters
+    samples, end_state = sample_fits(new_model, 
+        n_samples=n_samples, 
+        previous_state=previous_state)
+        
+    # Use the samples to predict phenotypes.
+    predictions = sample_predictions(new_model, samples, bins)
+    return new_model, end_state, ml_predictions, predictions

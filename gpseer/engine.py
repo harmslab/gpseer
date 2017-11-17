@@ -15,6 +15,7 @@ class Engine(object):
         self.model = model
         self.db_path = db_path
         self.references = self.gpm.complete_genotypes
+        self.map_of_mcmc_states = {ref : None for ref in self.references}
 
         # Create database folder
         if not os.path.exists(self.db_path):
@@ -48,13 +49,40 @@ class Engine(object):
         Prevents multiple calls to nodes."""
         raise SubclassError("Must be defined in a subclass.")    
 
-    def sample_fits(self, n_samples=10):
-        """Sample the posterior distributions for each model using an MCMC sampling
-        method (see the `emcee` library)."""
+    def sample_fits(self, n_samples=10, previous_state=None):
+        """Sample the likelihood function of the model and return an array of all
+        sets of model coefficients sampled.
+        
+        Parameters
+        ----------
+        n_samples : int
+            number of steps to take in sampler.
+        previous_state : dict
+            dictionary with data from latest step in MCMC walk. Must have 'rstate', 'lnprob',
+            and 'pos' as keys.
+            
+        Returns
+        -------
+        map_of_model_samples : dict
+            dictionary mapping each model's reference state to their model samples.
+            shape of array: (n_samples, number of coefs) 
+        """
         raise SubclassError("Must be defined in a subclass.")
     
-    def sample_predictions(self):
-        """Use the samples to predict all possible phenotypes in the genotype-phenotype map."""
+    def sample_predictions(self, samples, bins, genotypes='missing'):
+        """Use the samples to predict all possible phenotypes in the 
+        genotype-phenotype map.
+        
+        Parameters
+        ----------
+        samples : numpy.ndarray
+            array of model coefficients returned by an MCMC walk. 
+        bins : numpy.ndarray
+            array of histogram bins.
+        genotypes : str
+            the group of genotypes to predict. Must be either 'missing', 'obs',
+            or 'complete'.
+        """
         raise SubclassError("Must be defined in a subclass.")
 
     def sample_pipeline(self):
