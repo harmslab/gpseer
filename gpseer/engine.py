@@ -5,7 +5,38 @@ import pickle
 from .utils import EngineError, SubclassError
 
 class Engine(object):
-    """Base class for running sampling on genotype-phenotype maps.
+    """Engine for sampling epistasis model on sparsely sampled genotype-phenotype
+    maps.
+    
+    Parameters
+    ----------
+    gpm : gpmap.GenotypePhenotypeMap
+        object containing data for a sparse genotype-phenotype map.
+    model :  
+        epistasis model to use when predicting the genotype-phenotype map.
+    db_path : str
+        directory to save data from this sampling engine.
+    
+    Attributes
+    ----------
+    references : numpy.ndarray
+        Array containing all possible genotypes in the GenotypePhenotypeMap
+    map_of_mcmc_states : dict
+        Information about the engine's last step in the MCMC walk. This is
+        important for continuing MCMC walks. If not steps have been taken, 
+        the values are set to None.
+    map_of_models : dict
+        A mapping of epistasis models taken from different reference states. Key
+        is the reference genotype and the value of an epistasis model object.
+    map_of_predictions : dict
+        A mapping of the maximum likelihood phenotypes predicted by epistasis
+        models for each reference state. Key is the references genotype and the
+        value is a DataFrame of predictions. 
+    map_of_sampled_predictions : dict
+        A mapping of the posterior probability distributions for all predicted 
+        phenotypes. Key is the reference genotype and the value is a DataFrame 
+        (histogram bins as the index and predicted genotypes as columns.) 
+     
     """
     def __init__(self, gpm, model, db_path="database/"):
         if model.model_type != 'local':

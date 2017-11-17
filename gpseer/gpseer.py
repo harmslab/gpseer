@@ -1,9 +1,14 @@
+__doc__ = "Factory for GPSeer objects."""
+
 from .engine import EngineError
 from .serial import SerialEngine
 from .distributed import DistributedEngine
 
 def GPSeer(gpm, model, client=None, db_path="database/"):
-    """Factory for sampling engines."""
+    """Creates a sampling engine.
+    
+    
+    """
     # Tell whether to serialize or not.
     if client == None: 
         cls = SerialEngine(gpm, model, db_path=db_path)
