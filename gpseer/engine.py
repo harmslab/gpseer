@@ -19,8 +19,12 @@ class Engine(object):
     
     Attributes
     ----------
-    references : numpy.ndarray
+    reference_genotypes : numpy.ndarray
         Array containing all possible genotypes in the GenotypePhenotypeMap
+    predicted_genotypes : numpy.ndarray
+        array of genotypes that were predicted by sampling engine.
+    bins : numpy.array
+        array of bins used in bayesian posterior histogram.
     map_of_mcmc_states : dict
         Information about the engine's last step in the MCMC walk. This is
         important for continuing MCMC walks. If not steps have been taken, 
@@ -45,8 +49,8 @@ class Engine(object):
         self.gpm = gpm
         self.model = model
         self.db_path = db_path
-        self.references = self.gpm.complete_genotypes
-        self.map_of_mcmc_states = {ref : None for ref in self.references}
+        self.reference_genotypes = self.gpm.complete_genotypes
+        self.map_of_mcmc_states = {ref : None for ref in self.reference_genotypes}
 
         # Create database folder
         if not os.path.exists(self.db_path):

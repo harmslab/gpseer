@@ -23,9 +23,10 @@ class DistributedEngine(Engine):
 
     @wraps(Engine.setup)    
     def setup(self):
+        
         # Distribute the work using Dask.
         processes = []
-        for ref in self.references:
+        for ref in self.reference_genotypes:
             # Build process for this model.            
             process = delayed(workers.setup)(ref, self.gpm, self.model)
             
@@ -37,7 +38,7 @@ class DistributedEngine(Engine):
         
         # Organize the results
         self.map_of_models = {}
-        for i, ref in enumerate(self.references):
+        for i, ref in enumerate(self.reference_genotypes):
             # Get model from results distributed
             new_model = results[i]
             
@@ -46,9 +47,10 @@ class DistributedEngine(Engine):
             
     @wraps(Engine.run_fits)        
     def run_fits(self):
+        
         # Distribute the work using Dask.
         processes = []
-        for ref in self.references:
+        for ref in self.reference_genotypes:
             # Build process for this model.            
             process = delayed(workers.run_fits)(self.map_of_models[ref])
             
@@ -59,13 +61,25 @@ class DistributedEngine(Engine):
         results = compute(*processes, get=self.client.get)        
         
         # Zip map_of_models back
-        self.map_of_models = dict(zip(self.references, results))
+        self.map_of_models = dict(zip(self.reference_genotypes, results))
 
     @wraps(Engine.run_predictions)
-    def run_predictions(self, genotypes='missing'):        
+    def run_predictions(self, genotypes='missing'):
+        
+        # Store the predicted genotypes
+        if genotypes in ['missing', 'complete', 'obs']:
+            if genotypes == 'missing':
+                self.predicted_genotypes = self.gpm.missing_genotypes
+            elif genotypes == 'obs':
+                self.predicted_genotypes = self.gpm.genotypes
+            else:
+                self.predicted_genotypes = self.gpm.complete_genotypes
+        else:
+            raise ValueError("genotypes must be 'missing', 'obs', or 'complete'.")
+        
         # Distribute the work using Dask.
         processes = []
-        for ref in self.references:
+        for ref in self.reference_genotypes:
             # Build process for this model.            
             process = delayed(workers.run_predictions)(self.map_of_models[ref], 
                 genotypes=genotypes)
@@ -77,13 +91,25 @@ class DistributedEngine(Engine):
         results = compute(*processes, get=self.client.get)
 
         # Zip predictions
-        self.map_of_predictions = dict(zip(self.references, results))
+        self.map_of_predictions = dict(zip(self.reference_genotypes, results))
 
     @wraps(Engine.run_pipeline)
     def run_pipeline(self, genotypes='missing'):            
+        
+        # Store the predicted genotypes
+        if genotypes in ['missing', 'complete', 'obs']:
+            if genotypes == 'missing':
+                self.predicted_genotypes = self.gpm.missing_genotypes
+            elif genotypes == 'obs':
+                self.predicted_genotypes = self.gpm.genotypes
+            else:
+                self.predicted_genotypes = self.gpm.complete_genotypes
+        else:
+            raise ValueError("genotypes must be 'missing', 'obs', or 'complete'.")   
+        
         # Distribute the work using Dask.
         processes = []
-        for ref in self.references:
+        for ref in self.reference_genotypes:
             # Build process for this model.            
             process = delayed(workers.run_pipeline)(ref, self.gpm, self.model)
             
@@ -94,18 +120,19 @@ class DistributedEngine(Engine):
         results = compute(*processes, get=self.client.get)
 
         # Collect results
-        self.map_of_models = {ref : results[i][0] for i, ref in enumerate(self.references)}
-        self.map_of_predictions = {ref : results[i][1] for i, ref in enumerate(self.references)}
+        self.map_of_models = {ref : results[i][0] for i, ref in enumerate(self.reference_genotypes)}
+        self.map_of_predictions = {ref : results[i][1] for i, ref in enumerate(self.reference_genotypes)}
 
     @wraps(Engine.sample_fits)        
     def sample_fits(self, n_samples):
+        
         # Proper order check
         if hasattr(self, 'map_of_models') is False:
             raise Exception('Try running `run_fits` before running this method.')        
         
         # Distribute the work using Dask.
         processes = []
-        for ref in self.references:
+        for ref in self.reference_genotypes:
             # Build process for this model.            
             process = delayed(workers.sample_fits)(self.map_of_models[ref], 
                 n_samples=n_samples, 
@@ -117,15 +144,30 @@ class DistributedEngine(Engine):
         # Compute processes on distributed network.
         results = compute(*processes, get=self.client.get)
         
-        map_of_model_samples = {ref : results[i][0] for i, ref in enumerate(self.references)}
-        self.map_of_mcmc_states = {ref : results[i][1] for i, ref in enumerate(self.references)}
+        map_of_model_samples = {ref : results[i][0] for i, ref in enumerate(self.reference_genotypes)}
+        self.map_of_mcmc_states = {ref : results[i][1] for i, ref in enumerate(self.reference_genotypes)}
         return map_of_model_samples
 
     @wraps(Engine.sample_predictions)    
     def sample_predictions(self, map_of_model_samples, bins, genotypes='missing'):
+        
+        # Store the predicted genotypes
+        if genotypes in ['missing', 'complete', 'obs']:
+            if genotypes == 'missing':
+                self.predicted_genotypes = self.gpm.missing_genotypes
+            elif genotypes == 'obs':
+                self.predicted_genotypes = self.gpm.genotypes
+            else:
+                self.predicted_genotypes = self.gpm.complete_genotypes
+        else:
+            raise ValueError("genotypes must be 'missing', 'obs', or 'complete'.")        
+        
+        # Save bins
+        self.bins = bins[1:]
+        
         # Distribute the work using Dask.
         processes = []
-        for ref in self.references:
+        for ref in self.reference_genotypes:
             process = delayed(workers.sample_predictions)(
                 self.map_of_models[ref], 
                 map_of_model_samples[ref], 
@@ -138,13 +180,28 @@ class DistributedEngine(Engine):
         results = compute(*processes, get=self.client.get)
         
         # Organize the results.
-        self.map_of_sampled_predictions = {ref : results[i] for i, ref in enumerate(self.references)}
+        self.map_of_sampled_predictions = {ref : results[i] for i, ref in enumerate(self.reference_genotypes)}
         
     @wraps(Engine.sample_pipeline)    
     def sample_pipeline(self, n_samples, bins, genotypes='missing'):
+        
+        # Store the predicted genotypes
+        if genotypes in ['missing', 'complete', 'obs']:
+            if genotypes == 'missing':
+                self.predicted_genotypes = self.gpm.missing_genotypes
+            elif genotypes == 'obs':
+                self.predicted_genotypes = self.gpm.genotypes
+            else:
+                self.predicted_genotypes = self.gpm.complete_genotypes
+        else:
+            raise ValueError("genotypes must be 'missing', 'obs', or 'complete'.")   
+
+        # Save bins
+        self.bins = bins[1:]
+        
         # Distribute the work using Dask.
         processes = []
-        for ref in self.references:
+        for ref in self.reference_genotypes:
             process = delayed(workers.sample_pipeline)(ref, self.gpm, self.model,
                 n_samples, bins, 
                 genotypes=genotypes,
@@ -161,62 +218,31 @@ class DistributedEngine(Engine):
         self.map_of_mcmc_states = {}
         self.map_of_predictions = {}
         self.map_of_sampled_predictions = {}
-        for i, ref in enumerate(self.references):
+        for i, ref in enumerate(self.reference_genotypes):
             self.map_of_models[ref] = results[i][0]
             self.map_of_mcmc_states[ref] = results[i][1]
             self.map_of_predictions[ref] = results[i][2]
             self.map_of_sampled_predictions[ref] = results[i][3]
-    # 
-    # def _get_model_priors(self, genotype, flat_prior=False):
-    #     """Get a set of priors for a given genotype."""
-    #     # Build priors.
-    #     if flat_prior:
-    #         # List references states.
-    #         references = self.references
-    #         priors = np.ones(len(references)) * 1.0 / len(references)
-    #     else:        
-    #         # List references states.
-    #         references = self.references
-    # 
-    #         # Generate prior distribution
-    #         weights = np.array([10**(-hamming_distance(ref, genotype)) for ref in references])
-    #         weights = weights/weights.sum()    
-    # 
-    #     # Build dictionary
-    #     priors = dict(zip(references, weights))
-    #     return priors
-
 
     @property
     def results(self):
         """Get dataframe of results."""
-
-        if len(self.map_of_predictions) != len(self.map_of_sampled_predictions):
-            raise Exception    
-        
-        # Get columns for results df (genotypes)
-        # col = list(predictions[0])        
-        # ml = [self.map_of_predictions[c][c] for c in col]
-        # output = dict(zip(col, ml))
-        
         # Get example predictions DataFrame
-        df = list(self.map_of_sampled_predictions.values())[0]
-        columns = df.columns
-        index = list(df.index)
-        
-        # Build output array
-        data = {}
-        for col in columns:
-            posterior = []
-            for ref in self.references:
-                posterior.append(np.array(self.map_of_sampled_predictions[ref][col]))
-            posterior = list(np.sum(posterior, axis=0))
+        data = {}        
+        for genotype in self.predicted_genotypes:
+            for ref in self.reference_genotypes:
+                # Get max_likelihood
+                val = self.map_of_predictions[ref][genotype]['max_likelihood']
+                data[genotype] = [val]
+                
+        # Add histograms
+        if hasattr(self, 'map_of_sampled_predictions'):
+            # Get histograms
+            mapping = self.map_of_sampled_predictions
+            for genotype in self.predicted_genotypes:
+                arr = np.zeros(len(self.bins))
+                for ref in self.reference_genotypes:
+                    arr += np.array(mapping[ref][genotype].values)
+                data[genotype] += list(arr)
             
-            ml_val = [self.map_of_predictions[col][col]['max_likelihood']]
-            print(ml_val, posterior)
-            # Concatenate data
-            col_data = ml_val + posterior
-            data[col] = col_data
-            
-        
-        return pd.DataFrame(data, index=['max_likelihood'] + index)
+        return pd.DataFrame(data, index=['max_likelihood'] + list(self.bins))
