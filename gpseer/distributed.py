@@ -9,10 +9,7 @@ from . import workers
 from .engine import Engine
 
 # Import Dask stuff for distributed computing!
-from dask import delayed, compute, array
-import dask.array as da
-import dask.dataframe as ddf
-#from dask.distributed import Client
+from dask import delayed, compute
 
 class DistributedEngine(Engine):
     """GPSeer engine that distributes the work across all resources using Dask."""
@@ -149,7 +146,7 @@ class DistributedEngine(Engine):
         return map_of_model_samples
 
     @wraps(Engine.sample_predictions)    
-    def sample_predictions(self, map_of_model_samples, bins, genotypes='missing'):
+    def sample_predictions(self, map_of_model_samples, genotypes='missing'):
         
         # Store the predicted genotypes
         if genotypes in ['missing', 'complete', 'obs']:
@@ -162,16 +159,13 @@ class DistributedEngine(Engine):
         else:
             raise ValueError("genotypes must be 'missing', 'obs', or 'complete'.")        
         
-        # Save bins
-        self.bins = bins[1:]
-        
         # Distribute the work using Dask.
         processes = []
         for ref in self.reference_genotypes:
             process = delayed(workers.sample_predictions)(
                 self.map_of_models[ref], 
                 map_of_model_samples[ref], 
-                bins, genotypes=genotypes) 
+                self.bins, genotypes=genotypes) 
             
             # Add process to list of processes
             processes.append(process)
@@ -183,7 +177,7 @@ class DistributedEngine(Engine):
         self.map_of_sampled_predictions = {ref : results[i] for i, ref in enumerate(self.reference_genotypes)}
         
     @wraps(Engine.sample_pipeline)    
-    def sample_pipeline(self, n_samples, bins, genotypes='missing'):
+    def sample_pipeline(self, n_samples, genotypes='missing'):
         
         # Store the predicted genotypes
         if genotypes in ['missing', 'complete', 'obs']:
@@ -196,14 +190,11 @@ class DistributedEngine(Engine):
         else:
             raise ValueError("genotypes must be 'missing', 'obs', or 'complete'.")   
 
-        # Save bins
-        self.bins = bins[1:]
-        
         # Distribute the work using Dask.
         processes = []
         for ref in self.reference_genotypes:
             process = delayed(workers.sample_pipeline)(ref, self.gpm, self.model,
-                n_samples, bins, 
+                n_samples, self.bins, 
                 genotypes=genotypes,
                 previous_state=self.map_of_mcmc_states[ref])
                 
@@ -241,8 +232,14 @@ class DistributedEngine(Engine):
             mapping = self.map_of_sampled_predictions
             for genotype in self.predicted_genotypes:
                 arr = np.zeros(len(self.bins))
-                for ref in self.reference_genotypes:
-                    arr += np.array(mapping[ref][genotype].values)
+                
+                # Build priors.
+                priors = np.array([10**(-hamming_distance(ref, genotype)) for ref in self.reference_genotypes])
+                priors = priors/priors.sum()
+                
+                # Construct histograms
+                for i, ref in enumerate(self.reference_genotypes):               
+                    arr += np.array(mapping[ref][genotype].values) * priors[i]
                 data[genotype] += list(arr)
             
         return pd.DataFrame(data, index=['max_likelihood'] + list(self.bins))

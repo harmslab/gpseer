@@ -14,6 +14,8 @@ class Engine(object):
         object containing data for a sparse genotype-phenotype map.
     model :  
         epistasis model to use when predicting the genotype-phenotype map.
+    bins :
+        array of bins used in bayesian posterior histogram.
     db_path : str
         directory to save data from this sampling engine.
     
@@ -42,12 +44,13 @@ class Engine(object):
         (histogram bins as the index and predicted genotypes as columns.) 
      
     """
-    def __init__(self, gpm, model, db_path="database/"):
+    def __init__(self, gpm, model, bins, db_path="database/"):
         if model.model_type != 'local':
             raise Exception('model_type in model must be set to `local`.')
         
         self.gpm = gpm
         self.model = model
+        self.bins = bins[1:]
         self.db_path = db_path
         self.reference_genotypes = self.gpm.complete_genotypes
         self.map_of_mcmc_states = {ref : None for ref in self.reference_genotypes}
@@ -104,7 +107,7 @@ class Engine(object):
         """
         raise SubclassError("Must be defined in a subclass.")
     
-    def sample_predictions(self, samples, bins, genotypes='missing'):
+    def sample_predictions(self, samples, genotypes='missing'):
         """Use the samples to predict all possible phenotypes in the 
         genotype-phenotype map.
         
