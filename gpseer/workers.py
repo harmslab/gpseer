@@ -36,13 +36,13 @@ def setup(reference, gpm, model):
     # Store model
     return new_model
 
-def run_fits(model):
+def run_fits(model, sample_weights=None):
     """Estimate the most likely solution to the data given the model."""
     # Ignore warnings.
     warnings.simplefilter('ignore', RuntimeWarning)
     
     # Fit a model
-    model.fit()
+    model.fit(sample_weights=sample_weights)
     return model
 
 def run_predictions(model, genotypes='missing'):
@@ -52,7 +52,7 @@ def run_predictions(model, genotypes='missing'):
     ----------
     model : 
         a model from the `epistasis.models` module.
-    genotypes : str
+    genotypes : array
         what group of genotypes should I predict? Options are 'missing', 'obs', or 'complete'.
     
     Returns
@@ -60,31 +60,30 @@ def run_predictions(model, genotypes='missing'):
     predictions : pandas.DataFrame
         two column DataFrame with 'genotypes' and 'phenotypes' columns. 
     """
+    # Store the predicted genotypes
     if genotypes in ['missing', 'complete', 'obs']:
-
         if genotypes == 'missing':
-            g = model.gpm.missing_genotypes
+            gs = model.gpm.missing_genotypes
         elif genotypes == 'obs':
-            g = model.gpm.genotypes
+            gs = model.gpm.genotypes
         else:
-            g = model.gpm.complete_genotypes
-    
+            gs = model.gpm.complete_genotypes
     else:
         raise ValueError("genotypes must be 'missing', 'obs', or 'complete'.")
-    
+
     # Predict using current model.
-    p = model.predict(X=genotypes)
+    ps = model.predict(X=genotypes)
     
     # Return results as DataFrame
-    data = dict(zip(g, p))
+    data = dict(zip(gs, ps))
     predictions = pd.DataFrame(data, index=['max_likelihood'])
     return predictions
 
-def run_pipeline(reference, gpm, model, genotypes='missing'):
+def run_pipeline(reference, gpm, model, sample_weights=None, genotypes='missing'):
     """Run fits and predictions in series without leaving current node."""
     # Run the ML fits
     model = setup(reference, gpm, model)
-    model = run_fits(model)
+    model = run_fits(model, sample_weights=sample_weights)
     predictions = run_predictions(model, genotypes=genotypes)
     return model, predictions
 
@@ -127,25 +126,24 @@ def sample_predictions(model, samples, bins, genotypes='missing'):
         model parameters sampled by `sample_fits`
     bins : np.array
         Bins to use for histogram (must be an array)
-    genotypes : str
+    genotypes : list
         genotypes to predict.
         
     Returns
     -------
     predictions_df : pandas.DataFrame
         A dataframe with genotypes as columns, and bins as the index.
-    """   
+    """
+    # Store the predicted genotypes
     if genotypes in ['missing', 'complete', 'obs']:
-
         if genotypes == 'missing':
             gs = model.gpm.missing_genotypes
         elif genotypes == 'obs':
             gs = model.gpm.genotypes
         else:
             gs = model.gpm.complete_genotypes
-    
     else:
-        raise ValueError("genotypes must be 'missing', 'obs', or 'complete'.")
+        raise ValueError("genotypes must be 'missing', 'obs', or 'complete'.")    
     
     # Initialize a predictions array. (rows are samples, and cols are genotypes)
     predictions = np.empty((len(samples), len(gs)), dtype=float)
@@ -167,16 +165,26 @@ def sample_predictions(model, samples, bins, genotypes='missing'):
 
 def sample_pipeline(reference, gpm, model, n_samples, bins, genotypes='missing', 
     previous_state=None):
-    """Sample an epistasis model 
-    """
+    """Sample an epistasis model."""
     # Run ML pipeline to get ML solutions.
-    new_model, ml_predictions = run_pipeline(reference, gpm, model)
+    model, ml_predictions = run_pipeline(reference, gpm, model)
     
     # Sample model parameters
-    samples, end_state = sample_fits(new_model, 
+    samples, end_state = sample_fits(model, 
         n_samples=n_samples, 
         previous_state=previous_state)
         
     # Use the samples to predict phenotypes.
-    predictions = sample_predictions(new_model, samples, bins)
-    return new_model, end_state, ml_predictions, predictions
+    predictions = sample_predictions(model, samples, bins)
+    return model, end_state, ml_predictions, predictions
+# 
+# def sample_pipeline(model, n_samples, previous_state):
+#     """"""
+#     # Sample model parameters
+#     samples, end_state = sample_fits(model, 
+#         n_samples=n_samples, 
+#         previous_state=previous_state)
+#         
+#     # Use the samples to predict phenotypes.
+#     predictions = sample_predictions(model, samples, bins)
+#     return end_state, predictions

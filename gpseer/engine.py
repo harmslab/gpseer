@@ -25,8 +25,6 @@ class Engine(object):
         Array containing all possible genotypes in the GenotypePhenotypeMap
     predicted_genotypes : numpy.ndarray
         array of genotypes that were predicted by sampling engine.
-    bins : numpy.array
-        array of bins used in bayesian posterior histogram.
     map_of_mcmc_states : dict
         Information about the engine's last step in the MCMC walk. This is
         important for continuing MCMC walks. If not steps have been taken, 
@@ -42,17 +40,31 @@ class Engine(object):
         A mapping of the posterior probability distributions for all predicted 
         phenotypes. Key is the reference genotype and the value is a DataFrame 
         (histogram bins as the index and predicted genotypes as columns.) 
-     
     """
-    def __init__(self, gpm, model, bins, db_path="database/"):
+    def __init__(self, gpm, model, bins, sample_weights=None, genotypes='missing', db_path="database/"):
         if model.model_type != 'local':
             raise Exception('model_type in model must be set to `local`.')
         
         self.gpm = gpm
-        self.model = model
-        self.bins = bins[1:]
+        self.bins = bins
+        self.model = model    
         self.db_path = db_path
+        self.genotypes = genotypes
+        self.sample_weights = sample_weights
         self.reference_genotypes = self.gpm.complete_genotypes
+
+        # Store the predicted genotypes
+        if genotypes in ['missing', 'complete', 'obs']:
+            if genotypes == 'missing':
+                self.predicted_genotypes = self.gpm.missing_genotypes
+            elif genotypes == 'obs':
+                self.predicted_genotypes = self.gpm.genotypes
+            else:
+                self.predicted_genotypes = self.gpm.complete_genotypes
+        else:
+            raise ValueError("genotypes must be 'missing', 'obs', or 'complete'.")        
+        
+        # Map of MCMC states.
         self.map_of_mcmc_states = {ref : None for ref in self.reference_genotypes}
 
         # Create database folder
