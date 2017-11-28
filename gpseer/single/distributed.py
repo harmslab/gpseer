@@ -196,6 +196,7 @@ class DistributedEngine(Engine):
         df = self.ml_results
         
         # Add histograms
+        data = {g : [] for g in self.predicted_genotypes}
         if hasattr(self, 'map_of_sampled_predictions'):
             # Get histograms
             mapping = self.map_of_sampled_predictions
@@ -208,7 +209,7 @@ class DistributedEngine(Engine):
                 data[genotype] += list(arr)
             
             # Append posterior distributions to dataframe
-            df2 = pd.DataFrame(data, index=list(self.bins))
+            df2 = pd.DataFrame(data, index=list(self.bins[1:]))
             df = df.append(df2)
             
         return df

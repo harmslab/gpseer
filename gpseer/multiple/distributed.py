@@ -93,7 +93,7 @@ class DistributedEngine(Engine):
         processes = []
         for ref in self.reference_genotypes:
             # Build process for this model.            
-            process = delayed(workers.run_pipeline)(ref, self.gpm, self.model)
+            process = delayed(workers.run_pipeline)(ref, self.gpm, self.model, genotypes=self.genotypes)
             
             # Add process to list of processes
             processes.append(process)
@@ -177,21 +177,27 @@ class DistributedEngine(Engine):
             self.map_of_predictions[ref] = results[i][2]
             self.map_of_sampled_predictions[ref] = results[i][3]
 
+
     @property
-    def results(self):
-        """Get dataframe of prediction results."""
+    def ml_results(self):
+        """Get the maximum likelihood results"""
         # Get example predictions DataFrame
         data = {}        
         for genotype in self.predicted_genotypes:
-            for ref in self.reference_genotypes:
-                # Get max_likelihood
-                val = self.map_of_predictions[ref][genotype]['max_likelihood']
-                data[genotype] = [val]
-        
-        # Create a dataframe
+            # Get max_likelihood
+            val = self.map_of_predictions[genotype][genotype]['max_likelihood']
+            data[genotype] = [val]
+                
         df = pd.DataFrame(data, index=['max_likelihood'])
+        return df       
+
+    @property
+    def results(self):
+        """Get dataframe of prediction results."""
+        df = self.ml_results
         
         # Add histograms
+        data = {g : [] for g in self.predicted_genotypes}
         if hasattr(self, 'map_of_sampled_predictions'):
             # Get histograms
             mapping = self.map_of_sampled_predictions

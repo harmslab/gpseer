@@ -26,20 +26,19 @@ def GPSeer(gpm, model, bins,
             sample_weight=sample_weight, 
             db_path=db_path)
     else:
-        try:
-            if single_reference:
-                engine = single.DistributedEngine
-            else:
-                engine = multiple.DistributedEngines
-            cls = engine(client, 
-                gpm=gpm, 
-                model=model, 
-                bins=bins, 
-                genotypes=genotypes,
-                sample_weight=sample_weight, 
-                db_path=db_path)
-        except:
-            raise EngineError('client argument is invalid. Must be "serial" or "distributed".')
+        if single_reference:
+            engine = single.DistributedEngine
+        else:
+            engine = multiple.DistributedEngine
+        cls = engine(client, 
+            gpm=gpm, 
+            model=model, 
+            bins=bins, 
+            genotypes=genotypes,
+            sample_weight=sample_weight, 
+            db_path=db_path)
+        #except:
+        #    raise EngineError('client argument is invalid. Must be "serial" or "distributed".')
 
     # Initialize the engine.
     return cls
