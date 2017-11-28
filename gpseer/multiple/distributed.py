@@ -5,19 +5,28 @@ from functools import wraps
 from collections import Counter
 from gpmap.utils import hamming_distance
 
-from . import workers
-from .engine import Engine
+from .. import workers
+from ..engine import Engine
 
 # Import Dask stuff for distributed computing!
 from dask import delayed, compute
 
 class DistributedEngine(Engine):
     """GPSeer engine that distributes the work across all resources using Dask."""
+    
     @wraps(Engine)
     def __init__(self, client=None, *args, **kwargs):
+        # Set up Engine
         super(DistributedEngine, self).__init__(*args, **kwargs)
+        
+        # Reference client for distributed computing
         self.client = client
-
+        self.max_workers = sum(self.client.ncores().values())
+        
+        # Construct map for MCMC states.
+        self.reference_genotypes = self.gpm.complete_genotypes
+        self.map_of_mcmc_states = {ref : None for ref in self.reference_genotypes}
+        
     @wraps(Engine.setup)    
     def setup(self):
         
@@ -49,7 +58,7 @@ class DistributedEngine(Engine):
         processes = []
         for ref in self.reference_genotypes:
             # Build process for this model.            
-            process = delayed(workers.run_fits)(self.map_of_models[ref], sample_weights=self.sample_weights)
+            process = delayed(workers.run_fits)(self.map_of_models[ref], sample_weight=self.sample_weight)
             
             # Add process to list of processes
             processes.append(process)
@@ -178,7 +187,10 @@ class DistributedEngine(Engine):
                 # Get max_likelihood
                 val = self.map_of_predictions[ref][genotype]['max_likelihood']
                 data[genotype] = [val]
-                
+        
+        # Create a dataframe
+        df = pd.DataFrame(data, index=['max_likelihood'])
+        
         # Add histograms
         if hasattr(self, 'map_of_sampled_predictions'):
             # Get histograms
@@ -195,4 +207,8 @@ class DistributedEngine(Engine):
                     arr += np.array(mapping[ref][genotype].values) * priors[i]
                 data[genotype] += list(arr)
             
-        return pd.DataFrame(data, index=['max_likelihood'] + list(self.bins[1:]))
+            # Append posterior distributions to dataframe
+            df2 = pd.DataFrame(data, index=list(self.bins[1:]))
+            df = df.append(df2)
+            
+        return df

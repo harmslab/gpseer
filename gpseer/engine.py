@@ -41,7 +41,7 @@ class Engine(object):
         phenotypes. Key is the reference genotype and the value is a DataFrame 
         (histogram bins as the index and predicted genotypes as columns.) 
     """
-    def __init__(self, gpm, model, bins, sample_weights=None, genotypes='missing', db_path="database/"):
+    def __init__(self, gpm, model, bins, sample_weight=None, genotypes='missing', db_path="database/"):
         if model.model_type != 'local':
             raise Exception('model_type in model must be set to `local`.')
         
@@ -50,8 +50,7 @@ class Engine(object):
         self.model = model    
         self.db_path = db_path
         self.genotypes = genotypes
-        self.sample_weights = sample_weights
-        self.reference_genotype = self.gpm.wildtype
+        self.sample_weight = sample_weight
 
         # Store the predicted genotypes
         if genotypes in ['missing', 'complete', 'obs']:
@@ -63,9 +62,6 @@ class Engine(object):
                 self.predicted_genotypes = self.gpm.complete_genotypes
         else:
             raise ValueError("genotypes must be 'missing', 'obs', or 'complete'.")        
-        
-        # Map of MCMC states.
-        self.map_of_mcmc_states = {ref : None for ref in self.reference_genotypes}
 
         # Create database folder
         if not os.path.exists(self.db_path):

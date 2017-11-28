@@ -5,12 +5,21 @@ from functools import wraps
 from collections import Counter
 from gpmap.utils import hamming_distance
 
-from . import workers
-from .engine import Engine
+from .. import workers
+from ..engine import Engine
 
 class SerialEngine(Engine):
-    """"""
-    @wraps(Engine)
+    """GPSeer engine that distributes the work across all resources using Dask."""
+    
+    @wraps(Engine)    
+    def __init__(*args, **kwargs):
+        super(SerialEngine, self).__init__(*args, **kwargs)
+        
+        # Map of MCMC states.
+        self.reference_genotypes = self.gpm.complete_genotypes
+        self.map_of_mcmc_states = {ref : None for ref in self.reference_genotypes}
+    
+    @wraps(Engine.setup)
     def setup(self):            
         # Get references
         references = self.gpm.complete_genotypes

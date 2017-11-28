@@ -36,13 +36,13 @@ def setup(reference, gpm, model):
     # Store model
     return new_model
 
-def run_fits(model, sample_weights=None):
+def run_fits(model, sample_weight=None):
     """Estimate the most likely solution to the data given the model."""
     # Ignore warnings.
     warnings.simplefilter('ignore', RuntimeWarning)
     
     # Fit a model
-    model.fit(sample_weights=sample_weights)
+    model.fit(sample_weight=sample_weight)
     return model
 
 def run_predictions(model, genotypes='missing'):
@@ -79,11 +79,11 @@ def run_predictions(model, genotypes='missing'):
     predictions = pd.DataFrame(data, index=['max_likelihood'])
     return predictions
 
-def run_pipeline(reference, gpm, model, sample_weights=None, genotypes='missing'):
+def run_pipeline(reference, gpm, model, sample_weight=None, genotypes='missing'):
     """Run fits and predictions in series without leaving current node."""
     # Run the ML fits
     model = setup(reference, gpm, model)
-    model = run_fits(model, sample_weights=sample_weights)
+    model = run_fits(model, sample_weight=sample_weight)
     predictions = run_predictions(model, genotypes=genotypes)
     return model, predictions
 
@@ -167,15 +167,15 @@ def sample_pipeline(reference, gpm, model, n_samples, bins, genotypes='missing',
     previous_state=None):
     """Sample an epistasis model."""
     # Run ML pipeline to get ML solutions.
-    model, ml_predictions = run_pipeline(reference, gpm, model)
+    model, ml_predictions = run_pipeline(reference, gpm, model, genotypes=genotypes)
     
     # Sample model parameters
     samples, end_state = sample_fits(model, 
-        n_samples=n_samples, 
+        n_samples=n_samples,
         previous_state=previous_state)
         
     # Use the samples to predict phenotypes.
-    predictions = sample_predictions(model, samples, bins)
+    predictions = sample_predictions(model, samples, bins, genotypes=genotypes)
     return model, end_state, ml_predictions, predictions
 # 
 # def sample_pipeline(model, n_samples, previous_state):

@@ -5,11 +5,22 @@ from functools import wraps
 from collections import Counter
 from gpmap.utils import hamming_distance
 
-from . import workers
-from .engine import Engine
+from .. import workers
+from ..engine import Engine
 
 class SerialEngine(Engine):
     """"""
+
+
+    @wraps(Engine)    
+    def __init__(*args, **kwargs):
+        super(SerialEngine, self).__init__(*args, **kwargs)
+        
+        # Map of MCMC states.
+        self.reference_genotypes = self.gpm.complete_genotypes
+        self.map_of_mcmc_states = {i : None for i in range(1)}
+
+    
     @wraps(Engine)
     def setup(self):            
         # Get references
