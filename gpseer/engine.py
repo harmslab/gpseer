@@ -1,8 +1,33 @@
 import os
-import numpy as np
 import pickle
+from functools import wraps
+import numpy as np
 
 from .utils import EngineError, SubclassError
+
+def save_engine(method):
+    """Save the current state of the GPSeer engine."""
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        out = method(*args, **kwargs)
+        
+        # Load reference genotypes
+        path = os.path.join(self.db_dir, 'reference_genotypes')
+        with open(path, 'rb') as f:
+            self.reference_genotypes = pickle.load(f)
+        
+        # Load predicted genotypes
+        path = os.path.join(self.db_dir, 'predicted_genotypes')
+        with open(path, 'rb') as f:
+            self.predicted_genotypes = pickle.load(f)        
+        
+        # Load reference genotypes
+        path = os.path.join(self.db_dir, 'reference_genotypes')
+        with open(path, 'rb') as f:
+            self.reference_genotypes = pickle.load(f)
+        return out
+    return wrapper
+
 
 class Engine(object):
     """Engine for sampling epistasis model on sparsely sampled genotype-phenotype
@@ -16,7 +41,7 @@ class Engine(object):
         epistasis model to use when predicting the genotype-phenotype map.
     bins :
         array of bins used in bayesian posterior histogram.
-    db_path : str
+    db_dir : str
         directory to save data from this sampling engine.
     
     Attributes
@@ -41,14 +66,14 @@ class Engine(object):
         phenotypes. Key is the reference genotype and the value is a DataFrame 
         (histogram bins as the index and predicted genotypes as columns.) 
     """
-    def __init__(self, gpm, model, bins, sample_weight=None, genotypes='missing', db_path="database/"):
+    def __init__(self, gpm, model, bins, sample_weight=None, genotypes='missing', db_dir="database/"):
         if model.model_type != 'local':
             raise Exception('model_type in model must be set to `local`.')
         
         self.gpm = gpm
         self.bins = bins
         self.model = model    
-        self.db_path = db_path
+        self.db_dir = db_dir
         self.genotypes = genotypes
         self.sample_weight = sample_weight
 
@@ -64,15 +89,15 @@ class Engine(object):
             raise ValueError("genotypes must be 'missing', 'obs', or 'complete'.")        
 
         # Create database folder
-        if not os.path.exists(self.db_path):
+        if not os.path.exists(self.db_dir):
             # Create the directory for saving sampler data.
-            os.makedirs(self.db_path)
+            os.makedirs(self.db_dir)
             
-            path = os.path.join(self.db_path, 'gpm.pickle')
+            path = os.path.join(self.db_dir, 'gpm.pickle')
             with open(path, 'wb') as f:
                 pickle.dump(self.gpm, f)
             
-            path = os.path.join(self.db_path, 'model.pickle')
+            path = os.path.join(self.db_dir, 'model.pickle')
             with open(path, 'wb') as f:
                 pickle.dump(self.model, f)
 

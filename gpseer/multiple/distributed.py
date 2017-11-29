@@ -177,7 +177,6 @@ class DistributedEngine(Engine):
             self.map_of_predictions[ref] = results[i][2]
             self.map_of_sampled_predictions[ref] = results[i][3]
 
-
     @property
     def ml_results(self):
         """Get the maximum likelihood results"""

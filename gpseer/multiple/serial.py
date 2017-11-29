@@ -53,7 +53,7 @@ class SerialEngine(Engine):
         for ref, items in self.model_map.items():
             # compute predictions from models
             sampler = items['sampler']
-            sampler = workers.predict(ref, sampler, db_path=self.db_path)
+            sampler = workers.predict(ref, sampler, db_dir=self.db_dir)
     
     def run(self, n_samples=100):
         """"""
@@ -65,7 +65,7 @@ class SerialEngine(Engine):
             workers.run(ref, self.gpm, self.model, 
                 n_samples=n_samples, 
                 #starting_index=starting_index, 
-                db_path=self.db_path)
+                db_dir=self.db_dir)
     
     def collect(self):
         """"""
@@ -73,7 +73,7 @@ class SerialEngine(Engine):
         references = self.gpm.complete_genotypes
         self.data = {}
         for i, ref in enumerate(references):
-            path = os.path.join(self.db_path, "{}.csv".format(ref))
+            path = os.path.join(self.db_dir, "{}.csv".format(ref))
             df = pd.read_csv(path, index_col=0)
             self.data[ref] = df
     
