@@ -36,7 +36,7 @@ seer = GPSeer(gpm, model, bins, client=client, db_dir=db_dir)
 
 # Run Pipeline.
 # This samples predictions from many epistasis models and stores as histograms.
-seer.sample_predictions(n_samples=1000)
+seer.sample_pipeline(n_samples=1000)
 
 # See results
 seer.results
