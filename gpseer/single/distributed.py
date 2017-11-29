@@ -7,7 +7,7 @@ from collections import Counter
 from gpmap.utils import hamming_distance
 
 from .. import workers
-from ..engine import Engine
+from ..engine import Engine, save_engine
 
 # Import Dask stuff for distributed computing!
 from dask import delayed, compute
@@ -17,26 +17,37 @@ class DistributedEngine(Engine):
     """GPSeer engine that distributes the work across all resources using Dask.
     """
     @wraps(Engine)
+    @save_engine
     def __init__(self, client=None, *args, **kwargs):
         # Set up Engine
         super(DistributedEngine, self).__init__(*args, **kwargs)
 
         # Reference client for distributed computing
         self.client = client
-        self.max_workers = sum(self.client.ncores().values())
+        self.keys = sum(self.client.ncores().values())
+        self.perspective = 'single'
 
         # Internal storage items.
-        self.map_of_mcmc_states = {i: None for i in range(self.max_workers)}
-        self.map_of_models = {i: None for i in range(self.max_workers)}
-        self.map_of_predictions = {i: None for i in range(self.max_workers)}
-        self.map_of_sampled_predictions = {i: None for i in
-                                           range(self.max_workers)}
+        self.map_of_mcmc_states = {i: None for i in range(self.keys)}
+        self.map_of_models = {i: None for i in range(self.keys)}
+        self.map_of_predictions = {i: None for i in range(self.keys)}
+
+        # Prepare storage in memory for prediction histograms using a DataFrame
+        self.map_of_sampled_predictions = {}
+        for i in range(self.keys):
+            # Fill that dataframe with zeros.
+            df = pd.DataFrame(0, index=self.bins[1:],
+                              columns=self.predicted_genotypes)
+
+            # Store that dataframe in a dictionary.
+            self.map_of_sampled_predictions[i] = df
 
     @wraps(Engine.setup)
+    @save_engine
     def setup(self):
         # Distribute the work using Dask.
         processes = []
-        for i in range(self.max_workers):
+        for i in range(self.keys):
             # Build process for this model.
             process = delayed(workers.setup)(self.gpm.wildtype, self.gpm,
                                              self.model)
@@ -48,7 +59,7 @@ class DistributedEngine(Engine):
         results = compute(*processes, get=self.client.get)
 
         # Organize the results
-        for i in range(self.max_workers):
+        for i in range(self.keys):
             # Get model from results distributed
             new_model = results[i]
 
@@ -56,10 +67,11 @@ class DistributedEngine(Engine):
             self.map_of_models[i] = new_model
 
     @wraps(Engine.run_fits)
+    @save_engine
     def run_fits(self):
         # Distribute the work using Dask.
         processes = []
-        for i in range(self.max_workers):
+        for i in range(self.keys):
             # Build process for this model.
             process = delayed(workers.run_fits)(
                 self.map_of_models[i], sample_weight=self.sample_weight)
@@ -71,14 +83,15 @@ class DistributedEngine(Engine):
         results = compute(*processes, get=self.client.get)
 
         # Store the results
-        for i in range(self.max_workers):
+        for i in range(self.keys):
             self.map_of_models[i] = results[i]
 
     @wraps(Engine.run_predictions)
+    @save_engine
     def run_predictions(self):
         # Distribute the work using Dask.
         processes = []
-        for i in range(self.max_workers):
+        for i in range(self.keys):
             # Build process for this model.
             g = genotypes
             process = delayed(workers.run_predictions)(self.map_of_models[i],
@@ -91,14 +104,15 @@ class DistributedEngine(Engine):
         results = compute(*processes, get=self.client.get)
 
         # Zip predictions
-        for i in range(self.max_workers):
+        for i in range(self.keys):
             self.map_of_predictions[i] = results[i]
 
     @wraps(Engine.run_pipeline)
+    @save_engine
     def run_pipeline(self):
         # Distribute the work using Dask.
         processes = []
-        for i in range(self.max_workers):
+        for i in range(self.keys):
             # Build process for this model.
             process = delayed(workers.run_pipeline)(self.gpm.wildtype,
                                                     self.gpm,
@@ -112,7 +126,7 @@ class DistributedEngine(Engine):
         results = compute(*processes, get=self.client.get)
 
         # Collect results
-        for i in range(self.max_workers):
+        for i in range(self.keys):
             self.map_of_models[i] = results[i][0]
             self.map_of_predictions[i] = results[i][1]
 
@@ -125,11 +139,12 @@ class DistributedEngine(Engine):
 
         # Distribute the work using Dask.
         processes = []
-        for i in range(self.max_workers):
+        for i in range(self.keys):
             # Build process for this model.
+            state = self.map_of_mcmc_states[i]
             process = delayed(workers.sample_fits)(self.map_of_models[i],
                                                    n_samples=n_samples,
-                                                   previous_state=self.map_of_mcmc_states[i])
+                                                   previous_state=state)
 
             # Add process to list of processes
             processes.append(process)
@@ -139,17 +154,16 @@ class DistributedEngine(Engine):
 
         # Store mcmc states.
         self.map_of_mcmc_states = {i: results[i][1] for i in
-                                   range(self.max_workers)}
+                                   range(self.keys)}
 
         # Map of samples to return
-        return {i: results[i][0] for i in
-                range(self.max_workers)}
+        return {i: results[i][0] for i in range(self.keys)}
 
     @wraps(Engine.sample_predictions)
     def sample_predictions(self, map_of_model_samples):
         # Distribute the work using Dask.
         processes = []
-        for i in range(self.max_workers):
+        for i in range(self.keys):
             process = delayed(workers.sample_predictions)(
                 self.map_of_models[i],
                 map_of_model_samples[i],
@@ -162,20 +176,25 @@ class DistributedEngine(Engine):
         results = compute(*processes, get=self.client.get)
 
         # Organize the results.
-        self.map_of_sampled_predictions = {i: results[i] for i in 
-                                           range(self.max_workers)}
+        return {i: results[i] for i in range(self.keys)}
 
     @wraps(Engine.sample_pipeline)
+    @save_engine
     def sample_pipeline(self, n_samples):
+        # Check that the ML pipeline has been run.
+        if None is list(self.map_of_predictions.values())[0]:
+            self.run_pipeline()
 
         # Distribute the work using Dask.
         processes = []
-        for i in range(self.max_workers):
-            process = delayed(workers.sample_pipeline)(self.gpm.wildtype,
-                                                       self.gpm, self.model,
+        gs = self.genotypes
+        for i in range(self.keys):
+            model = self.map_of_models[i]
+            state = self.map_of_mcmc_states[i]
+            process = delayed(workers.sample_pipeline)(model,
                                                        n_samples, self.bins,
-                                                       genotypes=self.genotypes,
-                                                       previous_state=self.map_of_mcmc_states[i])
+                                                       genotypes=gs,
+                                                       previous_state=state)
 
             # Add process to list of processes
             processes.append(process)
@@ -184,11 +203,16 @@ class DistributedEngine(Engine):
         results = compute(*processes, get=self.client.get)
 
         # Parse results from workers.
-        for i in range(self.max_workers):
-            self.map_of_models[i] = results[i][0]
-            self.map_of_mcmc_states[i] = results[i][1]
-            self.map_of_predictions[i] = results[i][2]
-            self.map_of_sampled_predictions[i] = results[i][3]
+        for i in range(self.keys):
+            # Store end state of MCMC walk.
+            self.map_of_mcmc_states[i] = results[i][0]
+
+            # Add to new values to predictions dataframe.
+            df = self.map_of_sampled_predictions[i]
+            df = df.add(results[i][1], fill_value=0)
+
+            # Store dataframe in memory.
+            self.map_of_sampled_predictions[i] = df
 
     @property
     def ml_results(self):
@@ -196,7 +220,7 @@ class DistributedEngine(Engine):
         # Get example predictions DataFrame
         data = {}
         for genotype in self.predicted_genotypes:
-            for i in range(self.max_workers):
+            for i in range(self.keys):
                 # Get max_likelihood
                 val = self.map_of_predictions[i][genotype]['max_likelihood']
                 data[genotype] = [val]
@@ -218,7 +242,7 @@ class DistributedEngine(Engine):
                 arr = np.zeros(len(self.bins) - 1)
 
                 # Construct histograms
-                for i in range(self.max_workers):
+                for i in range(self.keys):
                     arr += np.array(mapping[i][genotype].values)  # * priors[i]
                 data[genotype] += list(arr)
 

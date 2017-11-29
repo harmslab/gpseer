@@ -7,26 +7,14 @@ from .utils import EngineError, SubclassError
 
 
 def save_engine(method):
-    """Save the current state of the GPSeer engine."""
+    """Save the current state of the GPSeer engine to db_dir."""
     @wraps(method)
     def wrapper(self, *args, **kwargs):
-        out = method(*args, **kwargs)
+        # Run method
+        out = method(self, *args, **kwargs)
 
-        # Load reference genotypes
-        path = os.path.join(self.db_dir, 'reference_genotypes')
-        with open(path, 'rb') as f:
-            self.reference_genotypes = pickle.load(f)
-
-        # Load predicted genotypes
-        path = os.path.join(self.db_dir, 'predicted_genotypes')
-        with open(path, 'rb') as f:
-            self.predicted_genotypes = pickle.load(f)
-
-        # Load reference genotypes
-        path = os.path.join(self.db_dir, 'reference_genotypes')
-        with open(path, 'rb') as f:
-            self.reference_genotypes = pickle.load(f)
-        return out
+        # Save GPSeer to disk
+        self.save()
     return wrapper
 
 
@@ -47,8 +35,10 @@ class Engine(object):
 
     Attributes
     ----------
-    reference_genotypes : numpy.ndarray
-        Array containing all possible genotypes in the GenotypePhenotypeMap
+    keys : numpy.ndarray
+        Reference keys for epistasis models used to sample the prediction
+        posterior. They are genotypes in a multiple references state GPSeer.
+        They are integers if using a distributed single reference state GPSeer.
     predicted_genotypes : numpy.ndarray
         array of genotypes that were predicted by sampling engine.
     map_of_mcmc_states : dict
@@ -94,18 +84,27 @@ class Engine(object):
             raise ValueError(
                 "genotypes must be 'missing', 'obs', or 'complete'.")
 
-        # Create database folder
-        if not os.path.exists(self.db_dir):
-            # Create the directory for saving sampler data.
-            os.makedirs(self.db_dir)
+    def save(self):
+        """Save to disk in db_dir as 'gpseer-object.pickle'."""
+        # Save GPSeer to disk
+        data = dict(gpm=self.gpm,
+                    model=self.model,
+                    db_dir=self.db_dir,
+                    sample_weight=self.sample_weight,
+                    perspective=self.perspective,
+                    keys=self.keys,
+                    bins=self.bins,
+                    genotypes=self.genotypes,
+                    predicted_genotypes=self.predicted_genotypes,
+                    map_of_mcmc_states=self.map_of_mcmc_states,
+                    map_of_models=self.map_of_models,
+                    map_of_predictions=self.map_of_predictions,
+                    map_of_sampled_predictions=self.map_of_sampled_predictions)
 
-            path = os.path.join(self.db_dir, 'gpm.pickle')
-            with open(path, 'wb') as f:
-                pickle.dump(self.gpm, f)
-
-            path = os.path.join(self.db_dir, 'model.pickle')
-            with open(path, 'wb') as f:
-                pickle.dump(self.model, f)
+        # Write data reference genotypes
+        path = os.path.join(self.db_dir, 'gpseer-object.pickle')
+        with open(path, 'wb') as f:
+            pickle.dump(data, f)
 
     def setup(self):
         """Initialize models for each reference state in the
@@ -160,6 +159,12 @@ class Engine(object):
         genotypes : str
             the group of genotypes to predict. Must be either 'missing', 'obs',
             or 'complete'.
+
+        Returns
+        -------
+        map_of_model_predictions : dict
+            dictionary mapping each model's reference state to their model
+            samples. shape of array: (n_samples, number of coefs)
         """
         raise SubclassError("Must be defined in a subclass.")
 

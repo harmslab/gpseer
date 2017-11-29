@@ -7,7 +7,7 @@ from . import single
 
 
 def GPSeer(gpm, model, bins, genotypes='missing', sample_weight=None,
-           client=None, single_reference=True, db_dir="database/"):
+           client=None, perspective='single', db_dir="database/"):
     """Main entry point to the GPSeer package. This function is a factory for
     creating a engine for infering missing data in a sparsely sampled
     genotype-phenotype map.
@@ -31,7 +31,7 @@ def GPSeer(gpm, model, bins, genotypes='missing', sample_weight=None,
         minimize.
     client : dask.distributed.Client (default=None)
         A Dask Client for distributed computing.
-    single_reference: bool (default=True)
+    perspective: str (default='single')
         Sample a single model from a singel reference genotype (wildtype) or
         use a multiple reference state model.
     db_dir : str (default='database')
@@ -39,7 +39,7 @@ def GPSeer(gpm, model, bins, genotypes='missing', sample_weight=None,
     """
     # Tell whether to serialize or not.
     if client is None:
-        if single_reference:
+        if perspective == 'single':
             engine = single.SerialEngine
         else:
             engine = multiple.SerialEngine
@@ -50,7 +50,7 @@ def GPSeer(gpm, model, bins, genotypes='missing', sample_weight=None,
                      sample_weight=sample_weight,
                      db_dir=db_dir)
     else:
-        if single_reference:
+        if perspective == 'single':
             engine = single.DistributedEngine
         else:
             engine = multiple.DistributedEngine

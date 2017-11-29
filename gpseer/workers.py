@@ -8,17 +8,23 @@ from epistasis.sampling.bayesian import BayesianSampler
 
 
 def setup(reference, gpm, model):
-    """Initializes an epistasis model and genotype-phenotype map object.
+    """Initialize a *new* copy of the epistasis model, attach a
+    genotype-phenotype map object, and prepare model.
 
     Parameters
     ----------
     reference :
+        reference genotype for local epistasis model.
     gpm :
+        GenotypePhenotypeMap object containing data.
     model :
+        Epistasis model for predicting missing data in the genotype-phenotype
+        map.
 
     Returns
     -------
     new_model :
+        New Epistasis model.
     """
     # Build a GenotypePhenotypeMap with a new reference state.
     new_gpm = GenotypePhenotypeMap(reference,  # New reference state.
@@ -175,13 +181,9 @@ def sample_predictions(model, samples, bins, genotypes='missing'):
     return predictions_df
 
 
-def sample_pipeline(reference, gpm, model, n_samples, bins,
+def sample_pipeline(model, n_samples, bins,
                     genotypes='missing', previous_state=None):
     """Sample an epistasis model."""
-    # Run ML pipeline to get ML solutions.
-    model, ml_predictions = run_pipeline(
-        reference, gpm, model, genotypes=genotypes)
-
     # Sample model parameters
     samples, end_state = sample_fits(model,
                                      n_samples=n_samples,
@@ -189,4 +191,4 @@ def sample_pipeline(reference, gpm, model, n_samples, bins,
 
     # Use the samples to predict phenotypes.
     predictions = sample_predictions(model, samples, bins, genotypes=genotypes)
-    return model, end_state, ml_predictions, predictions
+    return end_state, predictions
