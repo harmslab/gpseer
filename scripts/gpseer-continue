@@ -48,4 +48,4 @@ if __name__ == '__main__':
 
     # Write to file
     r = seer.results
-    r.to_csv(output)
+    r.to_csv(args.output)
