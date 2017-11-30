@@ -1,11 +1,14 @@
-# GPSeer: a genotype-phenotype predictor
+# GPSeer
+*Infer missing data in sparsely measured genotype-phenotype maps.*
 
-An opinionated library for sampling high-order epistasis models to predict phenotypes in a sparsely sampled genotype-phenotype map. This is an extremely computationally expensive task, so GPSeer attempts to 
+An opinionated library for sampling high-order epistasis models to predict 
+phenotypes in a sparsely sampled genotype-phenotype map. This is an extremely 
+computationally expensive task, so GPSeer attempts to 
 distribute the tasks using [Dask](https://github.com/dask/dask).
 
 Still under HEAVY development. Please don't use yet. The API is still changing very rapidly.
 
-## Basic Example
+## Basic examples
 
 ### API example
 
