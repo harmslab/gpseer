@@ -1,13 +1,19 @@
-# GPSeer: a genotype-phenotype predictor
+# GPSeer
+*Infer missing data in sparsely measured genotype-phenotype maps.*
 
-An opinionated library for sampling high-order epistasis models to predict phenotypes in a sparsely sampled genotype-phenotype map. This is an extremely computationally expensive task, so GPSeer attempts to 
-distribute the tasks using [Dask](https://github.com/dask/dask).
+An opinionated library for sampling high-order epistasis models to predict 
+phenotypes in a sparsely sampled genotype-phenotype map. This is an extremely 
+computationally expensive task, so GPSeer does its best break up the problem 
+into independent chunks distributed to as many workers as your machine allows. 
+This is powered by the fantastic [Dask](https://github.com/dask/dask) library.
 
-Still under HEAVY development. Please don't use yet. The API will change very rapidly.
+Still under HEAVY development. Please don't use yet. The API is still changing very rapidly.
 
-## Basic Example
+## Basic examples
 
-1. Load a genotype-phenotype map and construct a model for predicting missing phenotypes.
+### API example
+
+1. Load a genotype-phenotype map and initialize an epistasis model for predicting missing phenotypes.
 
 ```python
 from gpmap import GenotypePhenotypeMap
@@ -17,12 +23,7 @@ from epistasis.models import EpistasisMixedRegression
 gpm = GenotypePhenotypeMap.read_json("data.json")
 
 # Initialize a model to use
-model = EpistasisMixedRegression(
-    order=3,                # Set order of model
-    threshold=5,            # Threshold for classification as viable/nonviable
-    lmbda=1, A=1, B=1,      # nonlinear scale parameters
-    model_type="local")     # Type of high-order epistais model to use.
-
+model = EpistasisLinearRegression(order=1, model_type='local')
 ```
 2. **Construct** a GPSeer model (distributed for faster computation) and **train** the model.
 
@@ -33,28 +34,40 @@ from gpseer import GPSeer
 # Start a Dask Client
 client = Client()
 
-# Sample directory name
-db_dir = "samples"
+# Posterior window
+bins = np.arange(0, 10, 0.1)
 
 # Initialize a GPSeer object and give it data.
-seer = GPSeer(client=client).setup(gpm, model, db_dir=db_dir)
+seer = GPSeer(gpm, model, bins, client=client, db_dir=db_dir)
 
 # Run Pipeline.
-# This samples predictions from many epistasis models.
-# Then, fits histograms to the large array of predictions and
-# saves these as Snapshot objects.
-seer.run(n_samples=10000)
+# This samples predictions from many epistasis models and stores as histograms.
+seer.sample_pipeline(n_samples=1000)
 
-# Collect the results
-seer.collect()
+# See results
+seer.results
 ```
 
 Use the trained model to approximate the posterior distribution of an unknown 
 genotype (predict the phenotype). 
 
-```python
-# Approximate the posterior distribution.
-seer.approximate_posterior()
+### CLI example
+
+GPSeer install a few scripts that are runnable from anywhere on the commandline. 
+To sample a genotype-phenotype map, simply run `gpseer-predict`.
+
+```
+gpseer-predict --input data.json --output results.csv \
+      --model EpistasisLinearRegression --nsamples 100 \
+      --range 0 200 --order 1 --db_dir gpseer-db
+```
+
+If you've already sampled a dataset and would like to sample it further, try
+`gpseer-continue`. Just point this script to the directory that contains 
+gpseer data.
+
+```
+gpseer-continue --db_dir gpseer-db --output results.csv --nsamples 100 
 ```
 
 ## Install

@@ -8,9 +8,10 @@ GPSeer
 
 GPSeer provides a Python object that predicts phenotypes in sparsely sampled genotype-phenotypes maps.
 
-Maximum Likelihood Approach
----------------------------
+Quick start
+-----------
 
+Initialize GPSeer and call ``run_pipeline`` to estimate the maximum likely (ML) prediction.
 
 .. code-block:: python
 
@@ -23,23 +24,16 @@ Maximum Likelihood Approach
   seer.setup()
   
   # Run a Maximum likelihood group of models to predict phenotypes
-  seer.run_ml_pipeline()
+  seer.run_pipeline()
 
-Bayesian Approach
------------------
+We can estimate the uncertainty in our predictions using a Bayesian framework and sampling
+the posterior distribution of the likelihood. Call ``sample_pipeline`` to construct histograms
+that represent the posterior distribution.
 
 .. code-block:: python
-
-  from gpseer import GPSeer
-
-  # Initialize the seer
-  seer = GPSeer(gpm, model)
-
-  # Setup the models.
-  seer.setup()
   
-  # 
-  seer.run_bayesian_pipeline()
+  bins = np.arange(0,10, 0.2)
+  seer.sample_pipeline(bins=bins)
 
 
 Parallelized Computation

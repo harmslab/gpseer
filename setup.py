@@ -1,19 +1,103 @@
-# Try using setuptools first, if it's installed
-try:
-    from setuptools import setup
-except:
-    from distutils.core import setup
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-setup(name='gpseer',
-      version='0.1',
-      description='Python API that predicts unknown phenotypes in a genotype-phenotype map from known phenotypes.',
-      author='Zach Sailer',
-      author_email='zachsailer@gmail.com',
-      packages=['gpseer'],
-      install_requires=[
-          'numpy',
-          'h5py',
-          'gpmap',
-          'epistasis'
-      ],
-      zip_safe=False)
+# Note: To use the 'upload' functionality of this file, you must:
+#   $ pip install twine
+
+import io
+import os
+import sys
+from shutil import rmtree
+
+from setuptools import find_packages, setup, Command
+
+# Package meta-data.
+NAME = 'gpseer'
+DESCRIPTION = '''Python API to infer missing data in sparsely sampled \
+genotype-phenotype maps.'''
+URL = 'https://github.com/harmslab/gpseer'
+EMAIL = 'zachsailer@gmail.com'
+AUTHOR = 'Zach Sailer'
+
+# What packages are required for this module to be executed?
+REQUIRED = ['gpseer', 'epistasis']
+
+here = os.path.abspath(os.path.dirname(__file__))
+
+# Import the README and use it as the long-description.
+# Note: this will only work if 'README.md' is present in your MANIFEST.in file!
+with io.open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
+    long_description = '\n' + f.read()
+
+# Load the package's __version__.py module as a dictionary.
+about = {}
+with open(os.path.join(here, NAME, '__version__.py')) as f:
+    exec(f.read(), about)
+
+
+class UploadCommand(Command):
+    """Support setup.py upload."""
+
+    description = 'Build and publish the package.'
+    user_options = []
+
+    @staticmethod
+    def status(s):
+        """Prints things in bold."""
+        print('\033[1m{0}\033[0m'.format(s))
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        try:
+            self.status('Removing previous builds…')
+            rmtree(os.path.join(here, 'dist'))
+        except OSError:
+            pass
+
+        self.status('Building Source and Wheel (universal) distribution…')
+        os.system('{0} setup.py sdist bdist_wheel --universal'.format(
+            sys.executable))
+
+        self.status('Uploading the package to PyPi via Twine…')
+        os.system('twine upload dist/*')
+
+        sys.exit()
+
+
+# Where the magic happens:
+setup(
+    name=NAME,
+    version=about['__version__'],
+    description=DESCRIPTION,
+    long_description=long_description,
+    author=AUTHOR,
+    author_email=EMAIL,
+    url=URL,
+    packages=find_packages(exclude=('tests',)),
+    scripts=['scripts/gpseer-predict',
+             'scripts/gpseer-continue'],
+    install_requires=REQUIRED,
+    include_package_data=True,
+    license='MIT',
+    classifiers=[
+        # Trove classifiers
+        # Full list: https://pypi.python.org/pypi?%3Aaction=list_classifiers
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: Implementation :: CPython',
+        'Programming Language :: Python :: Implementation :: PyPy'
+    ],
+    # $ setup.py publish support.
+    cmdclass={
+        'upload': UploadCommand,
+    },
+)
