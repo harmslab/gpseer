@@ -5,39 +5,55 @@ import numpy as np
 from gpmap import GenotypePhenotypeMap
 import epistasis.models
 
+from gpseer import GPSeer
+
 if __name__ == '__main__':
-    
+
     # Handle command line argument.
-    parser = argparse.ArgumentParser(description="A command line tool to infer missing data in a sparsely sampled genotype-phenotype map.") 
-    parser.add_argument('input', help="File containing genotype-phenotype map data.")
-    parser.add_argument('output', default='results.csv', type=str, help="Output filename.")
-    parser.add_argument('model', default='EpistasisLinearRegression', type=str, help="Name of epistasis model to use. See list of models in epistasis package.")
-    parser.add_argument('posterior_window', nargs=2, help="Bounds of the posterior distribution.")
-    parser.add_argument('--order', default=1, type=int, help="Order of epistasis to include in model.")
-    parser.add_argument('--binsize', default=None, type=float, help="Binsize for posterior distributions. Think of this as the resolution of the predictions. Default is (0.01 * posterior_window)")
-    parser.add_argument('--single_reference', default=True, type=bool, help="Sample predictions from a single reference state (wildtype genotype) or multiple references states.")
-    parser.add_argument('--distributed', default=True, type=bool, help="Distribute the computations in parallel using Dask distributed.")
-    parser.add_argument('--nsamples', default=100, type=int, help="Number of steps taken by MCMC walkers. Total number of steps will be (number of samples * number of reference states)")
-    parser.add_argument('--format', default='json', type=str, help="File format of the genotype-phenotype map data.")
-    parser.add_argument('--db_dir', default='database', type=str, help="Database directory.")
-    parser.add_argument('--parameters', nargs='+', help="Model parameters")
+    parser = argparse.ArgumentParser(
+        description="A command line tool to infer missing data in a sparsely sampled genotype-phenotype map.")
+    parser.add_argument(
+        'input', help="File containing genotype-phenotype map data.")
+    parser.add_argument('output', default='results.csv',
+                        type=str, help="Output filename.")
+    parser.add_argument('model', default='EpistasisLinearRegression', type=str,
+                        help="Name of epistasis model to use. See list of models in epistasis package.")
+    parser.add_argument('posterior_window', nargs=2, type=float,
+                        help="Bounds of the posterior distribution.")
+    parser.add_argument('--order', default=1, type=int,
+                        help="Order of epistasis to include in model.")
+    parser.add_argument('--binsize', default=None, type=float,
+                        help="Binsize for posterior distributions. Think of this as the resolution of the predictions. Default is (0.01 * posterior_window)")
+    parser.add_argument('--perspective', default='single', type=str,
+                        help="Sample predictions from a single reference state (wildtype genotype) or multiple references states.")
+    parser.add_argument('--distributed', default=True, type=bool,
+                        help="Distribute the computations in parallel using Dask distributed.")
+    parser.add_argument('--nsamples', default=100, type=int,
+                        help="Number of steps taken by MCMC walkers. Total number of steps will be (number of samples * number of reference states)")
+    parser.add_argument('--format', default='json', type=str,
+                        help="File format of the genotype-phenotype map data.")
+    parser.add_argument('--db_dir', default='database',
+                        type=str, help="Database directory.")
+    parser.add_argument('--parameters', nargs='+',
+                        type=str, help="Model parameters")
 
     # Parse arguments
     args = parser.parse_args()
-    
+
     # Handle distribute
     if args.distributed:
         # Import Dask distributed
         from dask.distributed import Client
-        
+
         # Start a distributed client
         client = Client()
     else:
         # Set client to None.
-        client = None    
-        
-    # Get read method for GenotypePhenotype Map            
-    gpm_constructor = getattr(GenotypePhenotypeMap, 'read_{}'.format(args.format))
+        client = None
+
+    # Get read method for GenotypePhenotype Map
+    gpm_constructor = getattr(GenotypePhenotypeMap,
+                              'read_{}'.format(args.format))
     # Construct genotype-phenotype map object
     gpm = gpm_constructor(args.input)
 
@@ -45,32 +61,34 @@ if __name__ == '__main__':
     parameters = {}
     for i in range(0, len(args.parameters), 2):
         key = args.parameters[i]
-        val = args.parameters[i+1]
-        parameters[key] = val
-    
+        val = args.parameters[i + 1]
+        parameters[key] = float(val)
+
     # Create a set of bins
     binsize = args.binsize
     if binsize is None:
-        binsize = 0.01 * posterior_window[1] - posterior_window[0]
-    bins = np.arange(posterior_window[0], posterior_window[1], binsize)
-        
+        binsize = 0.01 * args.posterior_window[1] - args.posterior_window[0]
+    bins = np.arange(args.posterior_window[0], args.posterior_window[1],
+                     binsize)
+
     # Construct an epistasis model
     model_constructor = getattr(epistasis.models, args.model)
-    model = model_constructor(order=args.order, model_type='local', **parameters)
-    
+    model = model_constructor(
+        order=args.order, model_type='local', **parameters)
+
     # Initialize a GPSeer engine.
-    seer = GPSeer(gpm, model, bins, 
-        genotypes='complete', 
-        sample_weight=None,
-        client=client,
-        single_reference=args.single_reference,
-        db_path=args.db_dir)
-        
+    seer = GPSeer(gpm, model, bins,
+                  genotypes='complete',
+                  sample_weight=None,
+                  client=client,
+                  perspective=args.perspective,
+                  db_dir=args.db_dir)
+
     # Sample the posterior probabilities
-    seer.sample_predictions(args.nsamples)
-    
+    seer.sample_pipeline(args.nsamples)
+
     # Gather results
     r = seer.results
-    
+
     # Write results to output file.
     r.to_csv(args.output)

@@ -173,8 +173,17 @@ def sample_predictions(model, samples, bins, genotypes='missing'):
         predictions[i, :] = p_sample
 
     # histogram predictions array along the genotypes axis
-    data = {g: np.histogram(predictions[:, i], bins=bins)[
-        0] for i, g in enumerate(gs)}
+    data = {}
+    for i, g in enumerate(gs):
+        # Get predictions
+        p = predictions[:, i]
+
+        # Keep predictions that are not Nan
+        keep = p[~np.isnan(p)]
+
+        # Histogram good data and store.
+        hist = np.histogram(keep, bins=bins)[0]
+        data[g] = hist
 
     # Return a dataframe.
     predictions_df = pd.DataFrame(data=data, index=bins[1:])

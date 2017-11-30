@@ -1,5 +1,7 @@
 __doc__ = "Factory for GPSeer objects."""
 
+import os
+
 from .utils import EngineError
 
 from . import multiple
@@ -37,6 +39,10 @@ def GPSeer(gpm, model, bins, genotypes='missing', sample_weight=None,
     db_dir : str (default='database')
         Directory to store progress.
     """
+    # Create db_dir
+    if not os.path.exists(db_dir):
+        os.makedirs(db_dir)
+
     # Tell whether to serialize or not.
     if client is None:
         if perspective == 'single':

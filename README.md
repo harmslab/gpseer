@@ -7,6 +7,8 @@ Still under HEAVY development. Please don't use yet. The API is still changing v
 
 ## Basic Example
 
+### API example
+
 1. Load a genotype-phenotype map and initialize an epistasis model for predicting missing phenotypes.
 
 ```python
@@ -44,6 +46,24 @@ seer.results
 
 Use the trained model to approximate the posterior distribution of an unknown 
 genotype (predict the phenotype). 
+
+### CLI example
+
+GPSeer install a few scripts that are runnable from anywhere on the commandline. 
+To sample a genotype-phenotype map, simply run `gpseer-predict`.
+
+```
+gpseer-predict data.json results.csv EpistasisLinearRegression 0 200 --order 1 \
+      --nsamples 100 --db_dir gpseer-db
+```
+
+If you've already sampled a dataset and would like to sample it further, try
+`gpseer-continue`. Just point this script to the directory that contains 
+gpseer data.
+
+```
+gpseer-continue gpseer-db results.csv --nsamples 100 
+```
 
 ## Install
 

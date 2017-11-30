@@ -13,7 +13,8 @@ from setuptools import find_packages, setup, Command
 
 # Package meta-data.
 NAME = 'gpseer'
-DESCRIPTION = 'Python API to infer missing data in sparsely sampled genotype-phenotype maps.'
+DESCRIPTION = '''Python API to infer missing data in sparsely sampled \
+genotype-phenotype maps.'''
 URL = 'https://github.com/harmslab/gpseer'
 EMAIL = 'zachsailer@gmail.com'
 AUTHOR = 'Zach Sailer'
@@ -21,15 +22,10 @@ AUTHOR = 'Zach Sailer'
 # What packages are required for this module to be executed?
 REQUIRED = ['gpseer', 'epistasis']
 
-# The rest you shouldn't have to touch too much :)
-# ------------------------------------------------
-# Except, perhaps the License and Trove Classifiers!
-# If you do change the License, remember to change the Trove Classifier for that!
-
 here = os.path.abspath(os.path.dirname(__file__))
 
 # Import the README and use it as the long-description.
-# Note: this will only work if 'README.rst' is present in your MANIFEST.in file!
+# Note: this will only work if 'README.md' is present in your MANIFEST.in file!
 with io.open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = '\n' + f.read()
 
@@ -64,7 +60,8 @@ class UploadCommand(Command):
             pass
 
         self.status('Building Source and Wheel (universal) distribution…')
-        os.system('{0} setup.py sdist bdist_wheel --universal'.format(sys.executable))
+        os.system('{0} setup.py sdist bdist_wheel --universal'.format(
+            sys.executable))
 
         self.status('Uploading the package to PyPi via Twine…')
         os.system('twine upload dist/*')
@@ -82,13 +79,8 @@ setup(
     author_email=EMAIL,
     url=URL,
     packages=find_packages(exclude=('tests',)),
-    scripts=['scripts/gpseer-predict'],
-    # If your package is a single module, use this instead of 'packages':
-    # py_modules=['mypackage'],
-
-    # entry_points={
-    #     'console_scripts': ['mycli=mymodule:cli'],
-    # },
+    scripts=['scripts/gpseer-predict',
+             'scripts/gpseer-continue'],
     install_requires=REQUIRED,
     include_package_data=True,
     license='MIT',
