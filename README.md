@@ -3,8 +3,9 @@
 
 An opinionated library for sampling high-order epistasis models to predict 
 phenotypes in a sparsely sampled genotype-phenotype map. This is an extremely 
-computationally expensive task, so GPSeer attempts to 
-distribute the tasks using [Dask](https://github.com/dask/dask).
+computationally expensive task, so GPSeer does its best break up the problem 
+into independent chunks distributed to as many workers as your machine allows. 
+This is powered by the fantastic [Dask](https://github.com/dask/dask) library.
 
 Still under HEAVY development. Please don't use yet. The API is still changing very rapidly.
 
