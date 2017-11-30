@@ -11,28 +11,40 @@ if __name__ == '__main__':
 
     # Handle command line argument.
     parser = argparse.ArgumentParser(
-        description="A command line tool to infer missing data in a sparsely sampled genotype-phenotype map.")
-    parser.add_argument(
-        'input', help="File containing genotype-phenotype map data.")
-    parser.add_argument('output', default='results.csv',
+        description="A command line tool to infer missing data in a sparsely "
+        "sampled genotype-phenotype map.")
+
+    # Add arguments
+    parser.add_argument('-i', '--input',
+                        help="File containing genotype-phenotype map data.")
+    parser.add_argument('-o', '--output', default='results.csv',
                         type=str, help="Output filename.")
-    parser.add_argument('model', default='EpistasisLinearRegression', type=str,
-                        help="Name of epistasis model to use. See list of models in epistasis package.")
-    parser.add_argument('posterior_window', nargs=2, type=float,
+    parser.add_argument('-m', '--model', default='EpistasisLinearRegression',
+                        type=str,
+                        help="Name of epistasis model to use. See list of "
+                        "models in epistasis package.")
+    parser.add_argument('-n', '--nsamples', default=100, type=int,
+                        help="Number of steps taken by MCMC walkers. Total "
+                        "number of steps will be (number of samples * number "
+                        "of reference states)")
+    parser.add_argument('--range', nargs=2, type=float,
                         help="Bounds of the posterior distribution.")
     parser.add_argument('--order', default=1, type=int,
                         help="Order of epistasis to include in model.")
     parser.add_argument('--binsize', default=None, type=float,
-                        help="Binsize for posterior distributions. Think of this as the resolution of the predictions. Default is (0.01 * posterior_window)")
+                        help="Binsize for posterior distributions. Think of "
+                        "this as the resolution of the predictions. Default "
+                        "is (0.01 * posterior_window)")
     parser.add_argument('--perspective', default='single', type=str,
-                        help="Sample predictions from a single reference state (wildtype genotype) or multiple references states.")
+                        help="Sample predictions from a single reference "
+                        "state (wildtype genotype) or multiple references "
+                        "states.")
     parser.add_argument('--distributed', default=True, type=bool,
-                        help="Distribute the computations in parallel using Dask distributed.")
-    parser.add_argument('--nsamples', default=100, type=int,
-                        help="Number of steps taken by MCMC walkers. Total number of steps will be (number of samples * number of reference states)")
+                        help="Distribute the computations in parallel using "
+                        "Dask distributed.")
     parser.add_argument('--format', default='json', type=str,
                         help="File format of the genotype-phenotype map data.")
-    parser.add_argument('--db_dir', default='database',
+    parser.add_argument('-d', '--db_dir', default='database',
                         type=str, help="Database directory.")
     parser.add_argument('--parameters', nargs='+',
                         type=str, help="Model parameters")
@@ -67,8 +79,8 @@ if __name__ == '__main__':
     # Create a set of bins
     binsize = args.binsize
     if binsize is None:
-        binsize = 0.01 * args.posterior_window[1] - args.posterior_window[0]
-    bins = np.arange(args.posterior_window[0], args.posterior_window[1],
+        binsize = 0.01 * args.range[1] - args.range[0]
+    bins = np.arange(args.range[0], args.range[1],
                      binsize)
 
     # Construct an epistasis model

@@ -57,8 +57,9 @@ GPSeer install a few scripts that are runnable from anywhere on the commandline.
 To sample a genotype-phenotype map, simply run `gpseer-predict`.
 
 ```
-gpseer-predict data.json results.csv EpistasisLinearRegression 0 200 --order 1 \
-      --nsamples 100 --db_dir gpseer-db
+gpseer-predict --input data.json --output results.csv \
+      --model EpistasisLinearRegression --nsamples 100 \
+      --range 0 200 --order 1 --db_dir gpseer-db
 ```
 
 If you've already sampled a dataset and would like to sample it further, try
@@ -66,7 +67,7 @@ If you've already sampled a dataset and would like to sample it further, try
 gpseer data.
 
 ```
-gpseer-continue gpseer-db results.csv --nsamples 100 
+gpseer-continue --db_dir gpseer-db --output results.csv --nsamples 100 
 ```
 
 ## Install

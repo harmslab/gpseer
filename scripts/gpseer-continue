@@ -14,17 +14,17 @@ if __name__ == '__main__':
         description="Continue sampling a GPSeer model starting from the last "
                     "place you left off.")
 
-    parser.add_argument('db_dir',
+    parser.add_argument('-d', '--db_dir',
                         help="Directory containing previously sampled GPSeer.")
-    parser.add_argument('output', default='results.csv',
+    parser.add_argument('-o', '--output', default='results.csv',
                         type=str, help="Output filename.")
-    parser.add_argument('--distributed', default=True, type=bool,
-                        help="Distribute the computations in parallel "
-                        "using Dask distributed.")
-    parser.add_argument('--nsamples', default=100, type=int,
+    parser.add_argument('-n', '--nsamples', default=100, type=int,
                         help="Number of steps taken by MCMC walkers. Total "
                         "number of steps will be (number of samples * number "
                         "of reference states)")
+    parser.add_argument('--distributed', default=True, type=bool,
+                        help="Distribute the computations in parallel "
+                        "using Dask distributed.")
 
     # Arguments parsed.
     args = parser.parse_args()
