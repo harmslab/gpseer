@@ -1,10 +1,10 @@
 # GPSeer
 *Infer missing data in sparsely measured genotype-phenotype maps.*
 
-An opinionated library for sampling high-order epistasis models to predict 
-phenotypes in a sparsely sampled genotype-phenotype map. This is an extremely 
-computationally expensive task, so GPSeer does its best break up the problem 
-into independent chunks distributed to as many workers as your machine allows. 
+An opinionated library for sampling high-order epistasis models to predict
+phenotypes in a sparsely sampled genotype-phenotype map. This is an extremely
+computationally expensive task, so GPSeer does its best break up the problem
+into independent chunks distributed to as many workers as your machine allows.
 This is powered by the fantastic [Dask](https://github.com/dask/dask) library.
 
 Still under HEAVY development. Please don't use yet. The API is still changing very rapidly.
@@ -48,26 +48,27 @@ seer.sample_pipeline(n_samples=1000)
 seer.results
 ```
 
-Use the trained model to approximate the posterior distribution of an unknown 
-genotype (predict the phenotype). 
+Use the trained model to approximate the posterior distribution of an unknown
+genotype (predict the phenotype).
 
 ### CLI example
 
-GPSeer install a few scripts that are runnable from anywhere on the commandline. 
+GPSeer install a few scripts that are runnable from anywhere on the commandline.
 To sample a genotype-phenotype map, simply run `gpseer-predict`.
 
 ```
 gpseer-predict --input data.json --output results.csv \
       --model EpistasisLinearRegression --nsamples 100 \
-      --range 0 200 --order 1 --db_dir gpseer-db
+      --range 0 200 --order 1 --db_dir gpseer-db \
+      --preclassify False --model_type global
 ```
 
 If you've already sampled a dataset and would like to sample it further, try
-`gpseer-continue`. Just point this script to the directory that contains 
+`gpseer-continue`. Just point this script to the directory that contains
 gpseer data.
 
 ```
-gpseer-continue --db_dir gpseer-db --output results.csv --nsamples 100 
+gpseer-continue --db_dir gpseer-db --output results.csv --nsamples 100
 ```
 
 ## Install
