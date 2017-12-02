@@ -62,9 +62,6 @@ class Engine(object):
     def __init__(self, gpm, model, bins, sample_weight=None,
                  genotypes='missing', db_dir="database/"):
 
-        if model.model_type != 'local':
-            raise Exception('model_type in model must be set to `local`.')
-
         self.gpm = gpm
         self.bins = bins
         self.model = model

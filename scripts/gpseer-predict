@@ -46,6 +46,12 @@ if __name__ == '__main__':
                         help="File format of the genotype-phenotype map data.")
     parser.add_argument('-d', '--db_dir', default='database',
                         type=str, help="Database directory.")
+    parser.add_argument('--model_type', default='global', type=str,
+                        help="Type of model matrix to use.")
+    parser.add_argument('--threshold', default=0, type=float,
+                        help="threshold below which classifier will set to 0")
+    parser.add_argument('-c', '--preclassify', default=False, type=bool,
+                        help="Classify the phenotypes before fitting?")
     parser.add_argument('--parameters', nargs='+',
                         type=str, help="Model parameters")
 
@@ -86,7 +92,16 @@ if __name__ == '__main__':
     # Construct an epistasis model
     model_constructor = getattr(epistasis.models, args.model)
     model = model_constructor(
-        order=args.order, model_type='local', **parameters)
+        order=args.order, model_type=args.model_type, **parameters)
+
+    if args.preclassify:
+        classifier = epistasis.models.EpistasisLogisticRegression(
+            order=1,
+            threshold=args.threshold,
+            model_type=args.model_type)
+
+        # Build a mixed model.
+        model = epistasis.models.EpistasisMixedRegression(classifier, model)
 
     # Initialize a GPSeer engine.
     seer = GPSeer(gpm, model, bins,
