@@ -131,7 +131,7 @@ class DistributedEngine(Engine):
             self.map_of_predictions[i] = results[i][1]
 
     @wraps(Engine.sample_fits)
-    def sample_fits(self, n_samples):
+    def sample_fits(self, n_samples, n_burn=0):
         # Proper order check
         if hasattr(self, 'map_of_models') is False:
             raise Exception('Try running `run_fits` '
@@ -144,6 +144,7 @@ class DistributedEngine(Engine):
             state = self.map_of_mcmc_states[i]
             process = delayed(workers.sample_fits)(self.map_of_models[i],
                                                    n_samples=n_samples,
+                                                   n_burn=n_burn,
                                                    previous_state=state)
 
             # Add process to list of processes
@@ -180,7 +181,7 @@ class DistributedEngine(Engine):
 
     @wraps(Engine.sample_pipeline)
     @save_engine
-    def sample_pipeline(self, n_samples):
+    def sample_pipeline(self, n_samples, n_burn=0):
         # Check that the ML pipeline has been run.
         if None is list(self.map_of_predictions.values())[0]:
             self.run_pipeline()
@@ -193,6 +194,7 @@ class DistributedEngine(Engine):
             state = self.map_of_mcmc_states[i]
             process = delayed(workers.sample_pipeline)(model,
                                                        n_samples, self.bins,
+                                                       n_burn=n_burn,
                                                        genotypes=gs,
                                                        previous_state=state)
 

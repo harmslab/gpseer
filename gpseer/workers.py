@@ -100,7 +100,7 @@ def run_pipeline(reference, gpm, model, sample_weight=None,
     return model, predictions
 
 
-def sample_fits(model, n_samples=10, previous_state=None):
+def sample_fits(model, n_samples=10, n_burn=0, previous_state=None):
     """Use the BayesianSampler to possible models given the data.
 
     Parameters
@@ -127,7 +127,7 @@ def sample_fits(model, n_samples=10, previous_state=None):
 
     # Sample models using Bayesian sampler and return
     samples, end_state = sampler.sample(
-        n_steps=n_samples, previous_state=previous_state)
+        n_steps=n_samples, n_burn=n_burn, previous_state=previous_state)
     return samples, end_state
 
 
@@ -190,12 +190,13 @@ def sample_predictions(model, samples, bins, genotypes='missing'):
     return predictions_df
 
 
-def sample_pipeline(model, n_samples, bins,
+def sample_pipeline(model, n_samples, bins, n_burn=0,
                     genotypes='missing', previous_state=None):
     """Sample an epistasis model."""
     # Sample model parameters
     samples, end_state = sample_fits(model,
                                      n_samples=n_samples,
+                                     n_burn=n_burn,
                                      previous_state=previous_state)
 
     # Use the samples to predict phenotypes.
