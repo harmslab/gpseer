@@ -79,8 +79,9 @@ setup(
     author_email=EMAIL,
     url=URL,
     packages=find_packages(exclude=('tests',)),
-    scripts=['scripts/gpseer-predict',
-             'scripts/gpseer-continue'],
+    entry_points={
+        'console_scripts': ['{} = {}.cli:main'.format(NAME, NAME)],
+    },
     install_requires=REQUIRED,
     include_package_data=True,
     license='MIT',
