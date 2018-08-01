@@ -6,6 +6,8 @@
 GPSeer
 ======
 
+**WARNING** This repo is still under heavy development and not ready for general use. 
+
 GPSeer provides a Python object that predicts phenotypes in sparsely sampled genotype-phenotypes maps.
 
 Quick start
@@ -22,7 +24,7 @@ Initialize GPSeer and call ``run_pipeline`` to estimate the maximum likely (ML) 
 
   # Setup the models. This constructs a genotype-phenotype map from all reference states.
   seer.setup()
-  
+
   # Run a Maximum likelihood group of models to predict phenotypes
   seer.run_pipeline()
 
@@ -31,7 +33,7 @@ the posterior distribution of the likelihood. Call ``sample_pipeline`` to constr
 that represent the posterior distribution.
 
 .. code-block:: python
-  
+
   bins = np.arange(0,10, 0.2)
   seer.sample_pipeline(bins=bins)
 
@@ -40,8 +42,8 @@ Parallelized Computation
 ------------------------
 
 The computations in GPSeer are extremely computationally expensive. It requires constructing
-unique epistasis models for all missing phenotypes. Fortunately, 
-these computations are also easy to parallelize. GPSeer 
+unique epistasis models for all missing phenotypes. Fortunately,
+these computations are also easy to parallelize. GPSeer
 
 GPSeer is built on top of Dask_. It easily distributes the computing across all
 resources provided.
@@ -56,7 +58,7 @@ Contents:
 
 .. Indices and tables
 .. ==================
-.. 
+..
 .. * :ref:`genindex`
 .. * :ref:`modindex`
 .. * :ref:`search`
