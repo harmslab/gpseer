@@ -27,7 +27,11 @@ class Mock(MagicMock):
     def __getattr__(cls, name):
             return Mock()
 
-MOCK_MODULES = []
+MOCK_MODULES = [
+    'numpy',
+    'matplotlib',
+
+]
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -48,7 +52,7 @@ sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
-    'spinkx.ext.napoleon',
+    'sphinx.ext.napoleon',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
