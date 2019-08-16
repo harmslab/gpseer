@@ -25,13 +25,13 @@ from epistasis.models.base import BaseModel
 _aliases = {
     'i': 'GPSeer.infile',
     'o': 'GPSeer.outfile',
-    'm': 'GPSeer.model_definition',
-    'w': 'GPSeer.wildtype',
+    'model_definition': 'GPSeer.model_definition',
+    'wildtype': 'GPSeer.wildtype',
     'threshold': 'GPSeer.threshold',
     'spline_order': 'GPSeer.threshold',
     'spline_smoothness': 'GPSeer.spline_smoothness',
     'epistasis_order': 'GPSeer.epistasis_order',
-    'n': 'GPSeer.nreplicates',
+    'nreplicates': 'GPSeer.nreplicates',
     'model_file': 'GPSeer.model_file'
 }
 
