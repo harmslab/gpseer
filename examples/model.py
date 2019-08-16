@@ -11,8 +11,7 @@ from epistasis.models import (
 c = get_config()
 
 # Define an epistasis model for this config.
-c.epistasis_model = EpistasisPipeline([
-      #EpistasisLogisticRegression(threshold=5),
+c.GPSeer.model_definition = EpistasisPipeline([
       EpistasisSpline(k=3),
       EpistasisLinearRegression(order=3)
 ])
