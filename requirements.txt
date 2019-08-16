@@ -1,4 +1,3 @@
-numpy
-pandas
 gpmap
 epistasis
+traitlets

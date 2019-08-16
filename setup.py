@@ -80,7 +80,7 @@ setup(
     url=URL,
     packages=find_packages(exclude=('tests',)),
     entry_points={
-        'console_scripts': ['{} = {}.cli:main'.format(NAME, NAME)],
+        'console_scripts': ['{} = {}.app:main'.format(NAME, NAME)],
     },
     install_requires=REQUIRED,
     include_package_data=True,

@@ -1,8 +1,0 @@
-sphinx
-numpydoc
-sphinx-gallery
-
-numpy
-scipy
-scikit-learn
-gpmap
