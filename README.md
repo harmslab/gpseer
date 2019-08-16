@@ -53,9 +53,9 @@ Options
 --threshold=<Float> (GPSeer.threshold)
     Default: 0.0
     Experimental detection threshold, used by classifer.
---spline_order=<Float> (GPSeer.threshold)
+--spline_order=<Int> (GPSeer.spline_order)
     Default: 0.0
-    Experimental detection threshold, used by classifer.
+    Order of spline..
 --spline_smoothness=<Int> (GPSeer.spline_smoothness)
     Default: 10
     Smoothness of spline.
