@@ -3,7 +3,7 @@
 
 ## Basic Usage
 
-The simplest use-case is to call GPSeer on a CSV File.
+The simplest use-case is to call `gpseer` on a CSV file containing genotype-phenotype maps.
 ```
 gpseer -i phenotypes.csv
 ```
