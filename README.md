@@ -1,9 +1,7 @@
 # GPSeer
-*Infer missing data in sparsely measured genotype-phenotype maps.*
+*An opinionated approach to inferring missing data in sparsely measured genotype-phenotype maps.*
 
-An opinionated approach to predicting phenotypes in a sparsely sampled genotype-phenotype map.
-
-## Usage
+## Basic Usage
 
 The simplest use-case is to call GPSeer on a CSV File.
 ```
@@ -16,9 +14,17 @@ This returns a set of phenotype predictions using a third-order spline.
 More advanced models are possible by writing a short models file:
 ```python
 # model.py
+from epistasis.models import (
+      EpistasisPipeline,
+      EpistasisLogisticRegression,
+      EpistasisSpline,
+      EpistasisLinearRegression
+)
+
 c.GPSeer.epistasis_model = EpistasisPipeline([
-      Epi
-      EpistasisSpline(or)
+      EpistasisLogisticRegression(threshold=5),
+      EpistasisSpline(k=3),
+      EpistasisLinearRegression(order=3)
 ])
 ```
 then call the `gpseer` command.
