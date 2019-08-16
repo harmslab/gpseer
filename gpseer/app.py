@@ -28,7 +28,7 @@ _aliases = {
     'model_definition': 'GPSeer.model_definition',
     'wildtype': 'GPSeer.wildtype',
     'threshold': 'GPSeer.threshold',
-    'spline_order': 'GPSeer.threshold',
+    'spline_order': 'GPSeer.spline_order',
     'spline_smoothness': 'GPSeer.spline_smoothness',
     'epistasis_order': 'GPSeer.epistasis_order',
     'nreplicates': 'GPSeer.nreplicates',
