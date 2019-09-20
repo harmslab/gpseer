@@ -36,8 +36,7 @@ _aliases = {
     'epistasis_order': 'GPSeer.epistasis_order',
     'nreplicates': 'GPSeer.nreplicates',
     'model_file': 'GPSeer.model_file',
-    'genotype_file':'GPSeer.genotype_file',
-    'force':'GPSEer.force'
+    'genotype_file':'GPSeer.genotype_file'
 }
 
 # Cutoff for zero
@@ -194,12 +193,6 @@ class GPSeer(Application):
         config=True
     )
 
-    force = Bool(
-        False,
-        allow_none=True,
-        help="overwrite output file(s) without warning",
-        config=True
-    )
 
     # ----------------  Model Definitions ----------------------
 
@@ -223,10 +216,6 @@ class GPSeer(Application):
 
     @catch_config_error
     def start(self):
-
-
-        print("HERE HERE",self.force)
-
 
         if self.infile == "":
             err = "an input file must be specified using: gpseer -i INPUT_FILE"
