@@ -1,5 +1,6 @@
-gpmap
-epistasis
 traitlets
 numpy
 pandas
+gpmap
+epistasis
+
