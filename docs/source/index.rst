@@ -135,7 +135,7 @@ then call the ``gpseer`` command.
 
     gpseer -i phenotypes.csv --model_file=model.py
 
-For documentation on how to write these models, see the `epistasis <<https://epistasis.readthedocs.io/>`_
+For documentation on how to write these models, see the `epistasis <https://epistasis.readthedocs.io/>`_
 package.
 
 .. toctree::
