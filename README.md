@@ -1,22 +1,29 @@
 # GPSeer
-*An opinionated approach to inferring missing data in sparsely measured genotype-phenotype maps.*
+*Simple software for inferring missing data in sparsely measured genotype-phenotype maps*
 
 ## Basic Usage
 
 The simplest use-case is to call `gpseer` on an input `.csv` file containing genotype-phenotype data.
 
-For example:
-```bash
-gpseer -i phenotypes.csv    \
-      --wildtype "00000"    \
-      --threshold 1         \
-      --spline_order 2      \
-      --epistasis_order 2
-```
-Output:
-```bash
-[GPSeer] Running GPSeer on phenotypes.csv. Look for a predictions.csv file with your results.
+To try it out, see the `examples/` directory.
 
+### For example
+
+```bash
+cd gpseer
+cd examples/
+
+# Fit the observations in phenotypes.csv.  The instrument detection
+# threshold is set to 1.  This will first classify each genotype as
+# detectable or undetectable, interpolate across the map using a second-
+# order spline, and then describe the effect of each mutation as 
+# additive.   
+gpseer -i phenotypes.csv --threshold 1  --spline_order 2    
+```
+
+*Output*
+
+```bash
 [GPSeer] + Reading data...
 [GPSeer] └── Done reading data.
 
@@ -28,10 +35,12 @@ Output:
 
 [GPSeer] GPSeer finished!
 ```
-which returns a set of phenotype predictions using a 2nd-order spline .
+
+which returns a set of phenotype predictions stored in `predictions.csv`.
 
 ## Command-line options
 To see all configuration items, call `gpseer --help`:
+
 ```
 A tool for predicting phenotypes in a sparsely sampled genotype-phenotype maps.
 
@@ -99,6 +108,8 @@ gpseer -i phenotypes.csv --model_file=model.py
 Clone this repository and install with pip:
 
 ```
+git clone https://github.com/harmslab/gpseer.git
+cd gpseer 
 pip install gpseer
 ```
 
