@@ -1,7 +1,15 @@
+import sys
+import logging
 import argparse
 
+from .maximum_likelihood import run_estimate_ml
 
-arguments = {
+
+DESCRIPTION = """
+GPSeer: software to infer missing data in sparsely sampled genotype-phenotype maps.
+"""
+
+ARGUMENTS = {
     # Positional Arguments
     "input_file": dict(
         type=str,
@@ -39,7 +47,8 @@ arguments = {
         type=int,
         help="""
         The order of the spline used to estimate the nonlinearity in the
-        genotype-phenotype map."""
+        genotype-phenotype map.""",
+        default=None,
     ),
     "--spline_smoothness": dict(
         type=int,
@@ -75,16 +84,72 @@ arguments = {
 }
 
 
-def run():
-    parser = argparse.ArgumentParser(
+def setup_logger():
+    """Build a basic console logger.
+    """
+    logger = logging.getLogger(__name__)
+    handler = logging.StreamHandler(sys.stdout)
+    logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG)
+    formatter = logging.Formatter(
+        "[%(asctime)s | GPSeer] %(message)s"
+    )
+    handler.setFormatter(formatter)
+    return logger
+
+
+def build_command_line():
+    """Build a generic argparse CLI with list of arguments.
+    """
+    parser = argparse.ArgumentParser(description=DESCRIPTION)
+    subparsers = parser.add_subparsers()
+
+    # Build the ml_estimate subparser.
+    ml_estimate = subparsers.add_parser(
+        "ml_estimate",
         description="""
-        GPSeer: software to infer missing data in sparsely sampled genotype-phenotype maps.
+        ml_estimate: GPSeer's maximum likelihood calculator—
+        predicts the maximum-likelihood estimates for missing
+        phenotypes in a sparsely sampled genotype-phenotype map.
+        """,
+        help="""
+        Predict the maximum-likelihood estimates for missing
+        phenotypes in a sparsely sampled genotype-phenotype map.
         """
     )
-    for key, val in arguments.items():
-        parser.add_argument(key, **val)
-    parser.parse_args()
+    for key, val in ARGUMENTS.items():
+        ml_estimate.add_argument(key, **val)
+
+    ml_estimate.set_defaults(func=run_estimate_ml)
+
+    # Build the sampling subparser.
+    sampler = subparsers.add_parser(
+        "sampler",
+        help="""
+        Sample predictions.
+        """
+    )
+    for key, val in ARGUMENTS.items():
+        sampler.add_argument(key, **val)
+
+    sampler.set_defaults(func=lambda:None)#func=run_ml_estimate)
+    return parser
+
+
+
+def entrypoint():
+    logger = setup_logger()
+    parser = build_command_line()
+    args = parser.parse_args()
+
+    input_args = {}
+    for a in ARGUMENTS:
+        if a[0:2] == '--':
+            a = a[2:]
+        input_args[a] = getattr(args, a)
+    args.func(logger, **input_args)
+
 
 
 if __name__ == "__main__":
-    run()
+    entrypoint()
