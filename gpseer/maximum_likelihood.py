@@ -81,7 +81,7 @@ def get_ml_predictions_df(
     predicted_phenotypes = ml_model.predict(X=genotypes_to_predict)
     predicted_err = (1 - ml_model.score()) * np.mean(ml_model.gpm.phenotypes)
     # Drop any nonsense uncertainty.
-    if predicted_err < 0 and np.abs(predicted_unpredicted_errcertainty) < NUMERICAL_CUTOFF:
+    if predicted_err < 0 and np.abs(predicted_err) < NUMERICAL_CUTOFF:
         predicted_err = 0
     predicted_err = np.ones(len(predicted_phenotypes)) * predicted_err
 
@@ -137,11 +137,17 @@ def run_estimate_ml(
         nreplicates=None,
         genotype_file=None,
     ):
+    """The main function for running a maximum likelihood epistasis model
+    and predicting phenotypes in a sparsely sampled genotype map.
+    """
     logger.info("Reading input data...")
+
     input_df = read_input_file(input_file)
+
     logger.info("Finished reading input data.")
 
     logger.info("Constructing a model...")
+
     model = construct_model(
         threshold=threshold,
         spline_order=spline_order,
@@ -150,6 +156,7 @@ def run_estimate_ml(
     )
 
     logger.info("Fitting model to data...")
+
     model = fit_ml_model(
         model,
         input_df,
@@ -161,11 +168,14 @@ def run_estimate_ml(
         genotypes_to_predict = read_genotype_file(wildtype, genotype_file)
 
     logger.info("Predicting phenotypes...")
+
     out_df = get_ml_predictions_df(
         model,
         genotypes_to_predict=genotypes_to_predict,
     )
 
     logger.info("Writing phenotypes to file...")
+
     write_output_file(output_file, out_df)
+
     logger.info("Done!")

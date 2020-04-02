@@ -3,6 +3,7 @@ import logging
 import argparse
 
 from .maximum_likelihood import run_estimate_ml
+from .goodness_of_fit import run_goodness_of_fit
 
 
 DESCRIPTION = """
@@ -105,10 +106,10 @@ def build_command_line():
     subparsers = parser.add_subparsers()
 
     # Build the ml_estimate subparser.
-    ml_estimate = subparsers.add_parser(
-        "ml_estimate",
+    estimate_ml = subparsers.add_parser(
+        "estimate-ml",
         description="""
-        ml_estimate: GPSeer's maximum likelihood calculator—
+        estimate-ml: GPSeer's maximum likelihood calculator—
         predicts the maximum-likelihood estimates for missing
         phenotypes in a sparsely sampled genotype-phenotype map.
         """,
@@ -118,23 +119,28 @@ def build_command_line():
         """
     )
     for key, val in ARGUMENTS.items():
-        ml_estimate.add_argument(key, **val)
+        estimate_ml.add_argument(key, **val)
 
-    ml_estimate.set_defaults(func=run_estimate_ml)
+    estimate_ml.set_defaults(func=run_estimate_ml)
 
     # Build the sampling subparser.
-    sampler = subparsers.add_parser(
-        "sampler",
+    goodness_of_fit = subparsers.add_parser(
+        "goodness-of-fit",
+        description="""
+        goodness-of-fit: GPSeer's goodness-of-fit calculator—
+        estimates how well an epistasis model fits a given
+        genotype-phenotype map.
+        """,
         help="""
-        Sample predictions.
+        Calculate the 'goodness-of-fit' from a training set of
+        genotypes in a genotype-phenotype map.
         """
     )
     for key, val in ARGUMENTS.items():
-        sampler.add_argument(key, **val)
+        goodness_of_fit.add_argument(key, **val)
 
-    sampler.set_defaults(func=lambda:None)#func=run_ml_estimate)
+    goodness_of_fit.set_defaults(func=run_goodness_of_fit)
     return parser
-
 
 
 def entrypoint():
@@ -148,7 +154,6 @@ def entrypoint():
             a = a[2:]
         input_args[a] = getattr(args, a)
     args.func(logger, **input_args)
-
 
 
 if __name__ == "__main__":

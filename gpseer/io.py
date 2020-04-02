@@ -31,7 +31,7 @@ def read_genotype_file(wildtype, genotype_file_name):
     genotype_size = len(wildtype)
 
     out_genotypes = []
-    with open(genotypes_file_name) as f:
+    with open(genotype_file_name) as f:
         for line in f.readlines():
             genotype = line.strip()
 
