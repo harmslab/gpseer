@@ -11,9 +11,3 @@ def test_estimate_ml(script_runner):
 
 def test_goodness_of_fit(script_runner):
     script_runner.run('gpseer', 'goodness-of-fit')
-
-
-def test_goodness_of_fit2(script_runner):
-    script_runner.run('gpseer', 'of-fit')
-
-
