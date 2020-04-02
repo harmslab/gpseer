@@ -3,3 +3,4 @@ epistasis
 traitlets
 numpy
 pandas
+tqdm
