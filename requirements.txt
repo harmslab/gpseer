@@ -2,5 +2,3 @@ numpy
 pandas
 scipy
 scikit-learn
-gpmap
-epistasis
