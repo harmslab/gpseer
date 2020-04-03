@@ -20,7 +20,7 @@ EMAIL = 'zachsailer@gmail.com'
 AUTHOR = 'Zach Sailer'
 
 # What packages are required for this module to be executed?
-REQUIRED = ['gpseer', 'epistasis']
+REQUIRED = ['numpy', 'pandas', 'scipy', 'scikit-learn', 'gpseer', 'epistasis']
 
 here = os.path.abspath(os.path.dirname(__file__))
 

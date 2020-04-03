@@ -1,5 +1,4 @@
-gpmap
-epistasis
-traitlets
 numpy
 pandas
+scipy
+scikit-learn
