@@ -83,6 +83,9 @@ setup(
         'console_scripts': ['{} = {}.main:entrypoint'.format(NAME, NAME)],
     },
     install_requires=REQUIRED,
+    extras_require = {
+        'test': ['pytest', 'pytest-cov', 'pytest-console-scripts', 'pytest-datadir'],
+    },
     include_package_data=True,
     license='MIT',
     classifiers=[

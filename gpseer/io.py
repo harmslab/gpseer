@@ -8,7 +8,7 @@ def read_input_file(input_file_name):
     This should be a CSV file with the following columns:
     genotypes, phenotypes, n_replicates, stdeviations
     """
-    df = pd.read_csv(input_file_name)
+    df = pd.read_csv(input_file_name, index_col=0)
     required_columns = ["genotypes","phenotypes"]
     for c in required_columns:
         try:
