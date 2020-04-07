@@ -24,6 +24,7 @@ jobs:
         architecture: 'x64'
     - name: Install the Python dependencies
       run: |
+        pip install numpy
         pip install .
         pip install -e .[test]
     - name: Run the tests
