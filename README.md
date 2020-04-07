@@ -1,6 +1,8 @@
 # GPSeer
 *Simple software for inferring missing data in sparsely measured genotype-phenotype maps*
 
+![GPSeer tests](https://github.com/harmslab/gpseer/workflows/GPSeer%20tests/badge.svg)
+
 ## Basic Usage
 
 The simplest use-case is to call `gpseer` on an input `.csv` file containing genotype-phenotype data.
