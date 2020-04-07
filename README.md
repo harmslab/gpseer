@@ -16,9 +16,9 @@ cd examples/
 # Fit the observations in phenotypes.csv.  The instrument detection
 # threshold is set to 1.  This will first classify each genotype as
 # detectable or undetectable, interpolate across the map using a second-
-# order spline, and then describe the effect of each mutation as 
-# additive.   
-gpseer -i phenotypes.csv --threshold 1  --spline_order 2    
+# order spline, and then describe the effect of each mutation as
+# additive.
+gpseer estimate-ml phenotypes.csv output.csv --threshold 1  --spline_order 2
 ```
 
 *Output*
@@ -79,37 +79,13 @@ Options
     File containing epistasis model definition.
 ```
 
-## Advanced epistasis models
-
-More advanced models are possible by writing a short models file:
-```python
-# model.py
-from epistasis.models import (
-      EpistasisPipeline,
-      EpistasisLogisticRegression,
-      EpistasisSpline,
-      EpistasisLinearRegression
-)
-
-c.GPSeer.model_definition = EpistasisPipeline([
-      EpistasisLogisticRegression(threshold=5),
-      EpistasisSpline(k=3),
-      EpistasisLinearRegression(order=3)
-])
-```
-then call the `gpseer` command.
-```
-gpseer -i phenotypes.csv --model_file=model.py
-```
-
-
 ## Install
 
 Clone this repository and install with pip:
 
 ```
 git clone https://github.com/harmslab/gpseer.git
-cd gpseer 
+cd gpseer
 pip install gpseer
 ```
 
@@ -117,4 +93,3 @@ pip install gpseer
 
 1. gpmap : Python API for analyzing genotype phenotype maps.
 2. epistasis : Python API for extracting high-order epistasis in genotype-phenotype maps
-3. traitlets: static typing and configurable objects in Python

@@ -84,13 +84,14 @@ ARGUMENTS = {
 }
 
 
-def setup_logger():
+def setup_logger(stream_out=sys.stdout):
     """Build a basic console logger.
     """
     logger = logging.getLogger(__name__)
-    handler = logging.StreamHandler(sys.stdout)
-    logger.addHandler(handler)
     logger.setLevel(logging.DEBUG)
+
+    handler = logging.StreamHandler(stream_out)
+    logger.addHandler(handler)
     formatter = logging.Formatter(
         "[%(asctime)s | GPSeer] %(message)s"
     )
@@ -106,9 +107,9 @@ def build_command_line():
 
     # Build the ml_estimate subparser.
     ml_estimate = subparsers.add_parser(
-        "ml_estimate",
+        "estimate-ml",
         description="""
-        ml_estimate: GPSeer's maximum likelihood calculator—
+        estimate-ml: GPSeer's maximum likelihood calculator—
         predicts the maximum-likelihood estimates for missing
         phenotypes in a sparsely sampled genotype-phenotype map.
         """,
@@ -123,16 +124,16 @@ def build_command_line():
     ml_estimate.set_defaults(func=run_estimate_ml)
 
     # Build the sampling subparser.
-    sampler = subparsers.add_parser(
-        "sampler",
+    goodness_of_fit = subparsers.add_parser(
+        "goodness-of-fit",
         help="""
         Sample predictions.
         """
     )
     for key, val in ARGUMENTS.items():
-        sampler.add_argument(key, **val)
+        goodness_of_fit.add_argument(key, **val)
 
-    sampler.set_defaults(func=lambda:None)#func=run_ml_estimate)
+    goodness_of_fit.set_defaults(func=lambda:None)#func=run_ml_estimate)
     return parser
 
 
