@@ -84,7 +84,7 @@ setup(
     },
     install_requires=REQUIRED,
     extras_require = {
-        'test': ['pytest', 'pytest-cov', 'pytest-console-scripts', 'pytest-datadir'],
+        'test': ['pytest', 'pytest-cov', 'pytest-console-scripts', 'pytest-datafiles'],
     },
     include_package_data=True,
     license='MIT',
