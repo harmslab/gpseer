@@ -5,93 +5,68 @@
 
 ## Basic Usage
 
-The simplest use-case is to call `gpseer` on an input `.csv` file containing genotype-phenotype data.
-
-To try it out, see the `examples/` directory.
-
-### For example
-
+Install gpseer using pip:
 ```bash
-cd gpseer
-cd examples/
-
-# Fit the observations in phenotypes.csv.  The instrument detection
-# threshold is set to 1.  This will first classify each genotype as
-# detectable or undetectable, interpolate across the map using a second-
-# order spline, and then describe the effect of each mutation as
-# additive.
-gpseer estimate-ml phenotypes.csv output.csv --threshold 1  --spline_order 2
-```
-
-*Output*
-
-```bash
-[GPSeer] + Reading data...
-[GPSeer] └── Done reading data.
-
-[GPSeer] + Fitting data...
-[GPSeer] └── Done fitting data.
-
-[GPSeer] + Predicting missing data...
-[GPSeer] └── Done predicting...
-
-[GPSeer] GPSeer finished!
-```
-
-which returns a set of phenotype predictions stored in `predictions.csv`.
-
-## Command-line options
-To see all configuration items, call `gpseer --help`:
-
-```
-A tool for predicting phenotypes in a sparsely sampled genotype-phenotype maps.
-
-Options
--------
-
--i <Unicode> (GPSeer.infile)
-    Default: 'test'
-    Input file.
--o <Unicode> (GPSeer.outfile)
-    Default: 'predictions.csv'
-    Output file
---model_definition=<Instance> (GPSeer.model_definition)
-    Default: None
-    An epistasis model definition written in Python.
---wildtype=<Unicode> (GPSeer.wildtype)
-    Default: ''
-    The wildtype sequence
---threshold=<Float> (GPSeer.threshold)
-    Default: 0.0
-    Experimental detection threshold, used by classifer.
---spline_order=<Int> (GPSeer.spline_order)
-    Default: 0.0
-    Order of spline..
---spline_smoothness=<Int> (GPSeer.spline_smoothness)
-    Default: 10
-    Smoothness of spline.
---epistasis_order=<Int> (GPSeer.epistasis_order)
-    Default: 1
-    Order of epistasis in the model.
---nreplicates=<Int> (GPSeer.nreplicates)
-    Default: None
-    Number of replicates for calculating uncertainty.
---model_file=<Unicode> (GPSeer.model_file)
-    Default: ''
-    File containing epistasis model definition.
-```
-
-## Install
-
-Clone this repository and install with pip:
-
-```
-git clone https://github.com/harmslab/gpseer.git
-cd gpseer
 pip install gpseer
 ```
 
-## Dependencies
+The simplest use-case is to call `gpseer` on an input `.csv` file containing genotype-phenotype data.
 
-1. gpmap : Python API for analyzing genotype phenotype maps.
-2. epistasis : Python API for extracting high-order epistasis in genotype-phenotype maps
+### Downloading the example
+
+To get started, use GPSeer's `fetch-example` command to download an example from its Github repo.
+
+Download the gpseer example and explore the example input data:
+```bash
+# fetch
+> gpseer fetch-example
+[GPSeer] Downloading files to /examples...
+[GPSeer] └──>: 100%|██████████████████| 3/3 [00:00<00:00,  9.16it/s]
+[GPSeer] └──> Done!
+
+# Change into the example directory and checkout the files that were downloaded
+> cd example/
+> ls
+example-full.csv  example-test.csv  example-train.csv
+```
+
+### Predicting missing data using ML model.
+
+Estimate the maximum likelihood additive model on the training set and predict all missing genotypes. The predictions will be written to a file named `"predictions.csv"`.
+
+```bash
+> gpseer estimate-ml example-train.csv
+
+[GPSeer] Reading data from example-train.csv...
+[GPSeer] └──> Done reading data.
+[GPSeer] Constructing a model...
+[GPSeer] └──> Done constructing model.
+[GPSeer] Fitting data...
+[GPSeer] └──> Done fitting data.
+[GPSeer] Predicting missing data...
+[GPSeer] └──> Done predicting.
+[GPSeer] Writing phenotypes to predictions.csv...
+[GPSeer] └──> Done writing predictions!
+[GPSeer] GPSeer finished!
+```
+
+### Compute the "goodness-of-fit"
+
+Estimate how well your model is predicting data using the "goodness-of-fit" subcommand.
+Try the example below where we generate 10 subsets from the data and comput our prediction scores. The output can be found in the `"scores.csv"` file.
+
+```bash
+> gpseer goodness-of-fit example-full.csv 10
+
+[GPSeer] Reading data from example-full.csv...
+[GPSeer] └──> Done reading data.
+[GPSeer] Sampling the data...
+[GPSeer] └──>: 100%|████████████████| 10/10 [00:00<00:00, 37.77it/s]
+[GPSeer] └──> Done sampling data.
+[GPSeer] Writing scores to scores.csv...
+[GPSeer] └──> Done writing data.
+[GPSeer] GPSeer finished!
+```
+
+
+##

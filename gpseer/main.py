@@ -98,8 +98,9 @@ def build_command_line():
 
     # subcommand to fetch
     fetch = subparsers.add_parser(
-        "fetch-examples",
-        description="Fetch example directory from Github."
+        "fetch-example",
+        description="Fetch example directory from Github.",
+        help="Fetch example directory from Github."
     )
     fetch.add_argument(
         "--output-dir",
