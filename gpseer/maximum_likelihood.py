@@ -22,9 +22,9 @@ NUMERICAL_CUTOFF = 1e-10
 def construct_model(
     threshold=None,
     spline_order=None,
-    spline_smoothness=None,
+    spline_smoothness=10,
     epistasis_order=1,
-    ):
+):
     """Build an epistasis pipeline based on model
     parameters given.
 
@@ -57,7 +57,7 @@ def fit_ml_model(
     model,
     df,
     wildtype,
-    ):
+):
     """Estimate the maximum likelihood model for a given
     genotype-phenotype map.
     """
@@ -68,9 +68,9 @@ def fit_ml_model(
 
 
 def get_ml_predictions_df(
-        ml_model,
-        genotypes_to_predict=None
-    ):
+    ml_model,
+    genotypes_to_predict=None
+):
     """Build a dataframe of predictions from the ML model
     for a given list of genotypes. If not genotypes are given, the model
     will predict for all missing genotypes.
@@ -126,17 +126,17 @@ def get_ml_predictions_df(
 
 
 def run_estimate_ml(
-        logger,
-        input_file,
-        output_file,
-        wildtype=None,
-        threshold=None,
-        spline_order=None,
-        spline_smoothness=10,
-        epistasis_order=1,
-        nreplicates=None,
-        genotype_file=None,
-    ):
+    logger,
+    input_file,
+    output_file,
+    wildtype=None,
+    threshold=None,
+    spline_order=None,
+    spline_smoothness=10,
+    epistasis_order=1,
+    nreplicates=None,
+    genotype_file=None,
+):
     logger.info("Reading input data...")
     input_df = read_input_file(input_file)
     logger.info("Finished reading input data.")
