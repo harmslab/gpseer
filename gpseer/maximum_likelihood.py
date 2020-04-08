@@ -1,79 +1,78 @@
 import pandas as pd
 import numpy as np
 from epistasis.models import (
-    EpistasisPipeline,
     EpistasisLogisticRegression,
-    EpistasisSpline,
-    EpistasisLinearRegression
 )
 
 from gpmap import GenotypePhenotypeMap
-from .io import (
+from gpmap.utils import genotypes_to_mutations
+from .utils import (
     gpmap_from_gpmap,
-    read_input_file,
+    read_file_to_gpmap,
     read_genotype_file,
-    write_output_file
+    construct_model
 )
 
 # Cutoff for zero
 NUMERICAL_CUTOFF = 1e-10
 
+SUBCOMMAND = "estimate-ml"
 
-def construct_model(
-    threshold=None,
-    spline_order=None,
-    spline_smoothness=10,
-    epistasis_order=1,
-):
-    """Build an epistasis pipeline based on model
-    parameters given.
+DESCRIPTION = """
+estimate-ml: GPSeer's maximum likelihood calculator—
+predicts the maximum-likelihood estimates for missing
+phenotypes in a sparsely sampled genotype-phenotype map.
+"""
 
-    If a threshold is given, add a logistic classifier to
-    the pipeline first; otherwise, no classifier is applied.
+HELP = """
+Predict the maximum-likelihood estimates for missing
+phenotypes in a sparsely sampled genotype-phenotype map.
+"""
 
-    If a spline_order or smoothness is given, add a nonlinear
-    spline model with the given 'smoothness' and order.
-
-    Returns
-    -------
-    model : EpistasisPipeline
-        an epistasis pipeline with a the pieces mentioned above
-        based on the arguments given.
-    """
-    model = EpistasisPipeline([])
-
-    if threshold:
-        model.append(EpistasisLogisticRegression(threshold=threshold))
-
-    if spline_order and spline_smoothness:
-        model.append(EpistasisSpline(k=spline_order, s=spline_smoothness))
-
-    model.append(EpistasisLinearRegression(order=epistasis_order))
-
-    return model
+ARGUMENTS = {}
+OPTIONAL_ARGUMENTS = {
+    "--output_file": dict(
+        type=str,
+        help="""
+        A CSV file GPSeer will create with final predictions.
+        """,
+        default="predictions.csv"
+    ),
+    "--genotype_file": dict(
+        type=str,
+        help="""
+        A CSV file with a list of genotypes to predict given the input_file
+        and epistasis model.
+        """,
+        default=None
+    )
+}
 
 
-def fit_ml_model(
-    model,
-    df,
-    wildtype,
-):
-    """Estimate the maximum likelihood model for a given
-    genotype-phenotype map.
-    """
-    gpm = GenotypePhenotypeMap.read_dataframe(df, wildtype)
-    model.add_gpm(gpm)
-    model.fit()
-    return model
-
-
-def get_ml_predictions_df(
+def predict_to_dataframe(
     ml_model,
     genotypes_to_predict=None
 ):
-    """Build a dataframe of predictions from the ML model
-    for a given list of genotypes. If not genotypes are given, the model
-    will predict for all missing genotypes.
+    """
+    Predict a list of genotypes using an ML model.
+
+    The predictions are returned in a dataframe with the following columns:
+    "genotypes", "phenotypes", "uncertainty", "measured", "measured_err",
+    "n_replicates", "prediction", "prediction_err", "phenotype_class",
+    "binary", "n_mutations"
+
+    Parameters
+    ----------
+    ml_model : Epistasis model or EpistasisPipeline
+        Fitted model.
+
+    genotypes_to_predict : list
+        List of genotypes to predict.
+
+    Returns
+    -------
+    df : DataFrame
+        Formatted and sorted dataframe with predictions from the given model.
     """
     if not genotypes_to_predict:
         genotypes_to_predict = ml_model.gpm.get_missing_genotypes()
@@ -81,7 +80,7 @@ def get_ml_predictions_df(
     predicted_phenotypes = ml_model.predict(X=genotypes_to_predict)
     predicted_err = (1 - ml_model.score()) * np.mean(ml_model.gpm.phenotypes)
     # Drop any nonsense uncertainty.
-    if predicted_err < 0 and np.abs(predicted_unpredicted_errcertainty) < NUMERICAL_CUTOFF:
+    if predicted_err < 0 and np.abs(predicted_err) < NUMERICAL_CUTOFF:
         predicted_err = 0
     predicted_err = np.ones(len(predicted_phenotypes)) * predicted_err
 
@@ -125,10 +124,10 @@ def get_ml_predictions_df(
     return df
 
 
-def run_estimate_ml(
+def main(
     logger,
     input_file,
-    output_file,
+    output_file="predictions.csv",
     wildtype=None,
     threshold=None,
     spline_order=None,
@@ -137,9 +136,9 @@ def run_estimate_ml(
     nreplicates=None,
     genotype_file=None,
 ):
-    logger.info("Reading input data...")
-    input_df = read_input_file(input_file)
-    logger.info("Finished reading input data.")
+    logger.info(f"Reading data from {input_file}...")
+    gpm = read_file_to_gpmap(input_file, wildtype=wildtype)
+    logger.info("└──> Done reading data.")
 
     logger.info("Constructing a model...")
     model = construct_model(
@@ -148,24 +147,26 @@ def run_estimate_ml(
         spline_smoothness=spline_smoothness,
         epistasis_order=epistasis_order
     )
+    model.add_gpm(gpm)
+    logger.info("└──> Done constructing model.")
 
-    logger.info("Fitting model to data...")
-    model = fit_ml_model(
-        model,
-        input_df,
-        wildtype
-    )
+    logger.info("Fitting data...")
+    model.fit()
+    logger.info("└──> Done fitting data.")
 
     genotypes_to_predict = None
     if genotype_file:
         genotypes_to_predict = read_genotype_file(wildtype, genotype_file)
 
-    logger.info("Predicting phenotypes...")
-    out_df = get_ml_predictions_df(
+    logger.info("Predicting missing data...")
+    out_df = predict_to_dataframe(
         model,
         genotypes_to_predict=genotypes_to_predict,
     )
+    logger.info("└──> Done predicting.")
 
-    logger.info("Writing phenotypes to file...")
-    write_output_file(output_file, out_df)
-    logger.info("Done!")
+    logger.info(f"Writing phenotypes to {output_file}...")
+    out_df.to_csv(output_file)
+    logger.info("└──> Done writing predictions!")
+
+    logger.info("GPSeer finished!")

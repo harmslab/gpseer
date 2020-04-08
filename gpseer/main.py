@@ -2,7 +2,11 @@ import sys
 import logging
 import argparse
 
-from .maximum_likelihood import run_estimate_ml
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
+from . import maximum_likelihood
+from . import goodness_of_fit
 
 
 DESCRIPTION = """
@@ -16,13 +20,10 @@ ARGUMENTS = {
         help="""
         A CSV file containing the observed/measured genotype-phenotype map data.
         """,
-    ),
-    "output_file": dict(
-        type=str,
-        help="""
-        A CSV file GPSeer will create with final predictions.
-        """
-    ),
+    )
+}
+
+OPTIONAL_ARGUMENTS = {
     # Optional Arguments:
     # All optional arguments should be prefixed
     # with a `--` to make the optional.
@@ -65,22 +66,6 @@ ARGUMENTS = {
         """,
         default=1
     ),
-    "--nreplicates": dict(
-        type=int,
-        help="""
-        The number of pseudo-replicates to generate when sampling uncertainty
-        in the epistasis model.
-        """,
-        default=None
-    ),
-    "--genotype_file": dict(
-        type=str,
-        help="""
-        A CSV file with a list of genotypes to predict given the input_file
-        and epistasis model.
-        """,
-        default=None
-    )
 }
 
 
@@ -93,63 +78,65 @@ def setup_logger(stream_out=sys.stdout):
     handler = logging.StreamHandler(stream_out)
     logger.addHandler(handler)
     formatter = logging.Formatter(
-        "[%(asctime)s | GPSeer] %(message)s"
+        "[GPSeer] %(message)s"
     )
     handler.setFormatter(formatter)
     return logger
 
 
 def build_command_line():
-    """Build a generic argparse CLI with list of arguments.
+    """Construct the GPSeer entrypoint.
+
+    GPSeer has the following subcommands:
+    * estimate-ml
+    * goodness-of-fit
     """
+    # The main entrypoint is GPSeer, which
     parser = argparse.ArgumentParser(description=DESCRIPTION)
+    submodules = {maximum_likelihood, goodness_of_fit}
+
+    # Load subparsers from each submodule listed above.
     subparsers = parser.add_subparsers()
+    for mod in submodules:
+        # Constructs
+        subparser = subparsers.add_parser(
+            mod.SUBCOMMAND,
+            description=mod.DESCRIPTION,
+            help=mod.HELP
+        )
+        # Construct the list of arguments from gpseer and subcommand.
+        all_args = {}
+        all_args.update(ARGUMENTS)
+        all_args.update(mod.ARGUMENTS)
+        all_args.update(OPTIONAL_ARGUMENTS)
+        all_args.update(mod.OPTIONAL_ARGUMENTS)
 
-    # Build the ml_estimate subparser.
-    ml_estimate = subparsers.add_parser(
-        "estimate-ml",
-        description="""
-        estimate-ml: GPSeer's maximum likelihood calculator—
-        predicts the maximum-likelihood estimates for missing
-        phenotypes in a sparsely sampled genotype-phenotype map.
-        """,
-        help="""
-        Predict the maximum-likelihood estimates for missing
-        phenotypes in a sparsely sampled genotype-phenotype map.
-        """
-    )
-    for key, val in ARGUMENTS.items():
-        ml_estimate.add_argument(key, **val)
+        for key, val in all_args.items():
+            subparser.add_argument(key, **val)
 
-    ml_estimate.set_defaults(func=run_estimate_ml)
-
-    # Build the sampling subparser.
-    goodness_of_fit = subparsers.add_parser(
-        "goodness-of-fit",
-        help="""
-        Sample predictions.
-        """
-    )
-    for key, val in ARGUMENTS.items():
-        goodness_of_fit.add_argument(key, **val)
-
-    goodness_of_fit.set_defaults(func=lambda:None)#func=run_ml_estimate)
+        # Add the main function for this submodule
+        # as the entrpoint to its subcommand.
+        subparser.set_defaults(main=mod.main)
     return parser
 
 
+def run(parser):
+    """Convert a gpseer
+    """
+    # Initialize a logger for the running program.
+    logger = setup_logger()
+    # Parse incomding command.
+    args = parser.parse_args()
+    kwargs = vars(args)
+    # Call the subcommmand.
+    main = kwargs.pop('main')
+    main(logger, **kwargs)
+
 
 def entrypoint():
-    logger = setup_logger()
+    # Build main parser + subparsers
     parser = build_command_line()
-    args = parser.parse_args()
-
-    input_args = {}
-    for a in ARGUMENTS:
-        if a[0:2] == '--':
-            a = a[2:]
-        input_args[a] = getattr(args, a)
-    args.func(logger, **input_args)
-
+    run(parser)
 
 
 if __name__ == "__main__":
