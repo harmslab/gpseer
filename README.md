@@ -1,7 +1,7 @@
 # GPSeer
 *Simple software for inferring missing data in sparsely measured genotype-phenotype maps*
 
-![GPSeer tests](https://github.com/harmslab/gpseer/workflows/GPSeer%20tests/badge.svg)
+[![GPSeer tests](https://github.com/harmslab/gpseer/workflows/GPSeer%20tests/badge.svg)](https://github.com/harmslab/gpseer/actions?query=workflow%3A%22GPSeer+tests%22)
 
 ## Basic Usage
 
@@ -18,8 +18,9 @@ To get started, use GPSeer's `fetch-example` command to download an example from
 
 Download the gpseer example and explore the example input data:
 ```bash
-# fetch
+# fetch data from Github page.
 > gpseer fetch-example
+
 [GPSeer] Downloading files to /examples...
 [GPSeer] └──>: 100%|██████████████████| 3/3 [00:00<00:00,  9.16it/s]
 [GPSeer] └──> Done!
@@ -27,6 +28,7 @@ Download the gpseer example and explore the example input data:
 # Change into the example directory and checkout the files that were downloaded
 > cd example/
 > ls
+
 example-full.csv  example-test.csv  example-train.csv
 ```
 
@@ -68,5 +70,3 @@ Try the example below where we generate 10 subsets from the data and comput our 
 [GPSeer] GPSeer finished!
 ```
 
-
-##
