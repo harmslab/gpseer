@@ -5,6 +5,7 @@ import argparse
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
+from . import fetch_example
 from . import maximum_likelihood
 from . import goodness_of_fit
 
@@ -91,12 +92,25 @@ def build_command_line():
     * estimate-ml
     * goodness-of-fit
     """
-    # The main entrypoint is GPSeer, which
+    # The main entrypoint is GPSeer
     parser = argparse.ArgumentParser(description=DESCRIPTION)
-    submodules = {maximum_likelihood, goodness_of_fit}
-
-    # Load subparsers from each submodule listed above.
     subparsers = parser.add_subparsers()
+
+    # subcommand to fetch
+    fetch = subparsers.add_parser(
+        "fetch-examples",
+        description="Fetch example directory from Github."
+    )
+    fetch.add_argument(
+        "--output-dir",
+        type=str,
+        help="folder to download the contents to.",
+        default="examples"
+    )
+    fetch.set_defaults(main=fetch_example.main)
+
+    # Load subparsers from each submodule listed below.
+    submodules = {maximum_likelihood, goodness_of_fit}
     for mod in submodules:
         # Constructs
         subparser = subparsers.add_parser(
