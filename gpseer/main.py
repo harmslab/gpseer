@@ -144,14 +144,13 @@ def run(parser):
     args = parser.parse_args()
     kwargs = vars(args)
 
-    # Call the subcommmand.
+    # grab subcommand; if nothing, call with --help
     try:
         main = kwargs.pop('main')
-    # If nothing is passed, call --help
-
     except KeyError:
         parser.parse_args(["--help"])
 
+    # Call the subcommmand.
     main(logger, **kwargs)
 
 
