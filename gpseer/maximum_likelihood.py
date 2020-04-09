@@ -13,6 +13,8 @@ from .utils import (
     construct_model
 )
 
+import os 
+
 # Cutoff for zero
 NUMERICAL_CUTOFF = 1e-10
 
@@ -155,6 +157,11 @@ def main(
     nreplicates=None,
     genotype_file=None,
 ):
+
+    if os.path.isfile(output_file):
+        err = "output_file '{}' already exists.\n".format(output_file)
+        raise FileExistsError(err)
+
     logger.info(f"Reading data from {input_file}...")
     gpm = read_file_to_gpmap(input_file, wildtype=wildtype)
     logger.info("└──> Done reading data.")

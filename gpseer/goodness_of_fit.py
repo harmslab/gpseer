@@ -9,6 +9,8 @@ from .utils import (
     construct_model
 )
 
+import os
+
 SUBCOMMAND = "goodness-of-fit"
 
 DESCRIPTION = """
@@ -63,6 +65,11 @@ def main(
     spline_smoothness=10,
     epistasis_order=1,
 ):
+
+    if os.path.isfile(output_file):
+        err = "output_file '{}' already exists.\n".format(output_file)
+        raise FileExistsError(err)
+
     logger.info(f"Reading data from {input_file}...")
     gpm = read_file_to_gpmap(input_file, wildtype=wildtype)
     logger.info("└──> Done reading data.")
