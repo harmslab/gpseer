@@ -41,7 +41,7 @@ OPTIONAL_ARGUMENTS = {
     "--genotype_file": dict(
         type=str,
         help="""
-        A CSV file with a list of genotypes to predict given the input_file
+        A text file with a list of genotypes to predict given the input_file
         and epistasis model.
         """,
         default=None
@@ -77,8 +77,13 @@ def predict_to_dataframe(
     if not genotypes_to_predict:
         genotypes_to_predict = ml_model.gpm.get_missing_genotypes()
 
+    # Also predict the training data
+    measured_genotypes = ml_model.gpm.genotypes[:]
+    genotypes_to_predict.extend(measured_genotypes)
+
     predicted_phenotypes = ml_model.predict(X=genotypes_to_predict)
     predicted_err = (1 - ml_model.score()) * np.mean(ml_model.gpm.phenotypes)
+
     # Drop any nonsense uncertainty.
     if predicted_err < 0 and np.abs(predicted_err) < NUMERICAL_CUTOFF:
         predicted_err = 0
@@ -96,13 +101,27 @@ def predict_to_dataframe(
     out_data["prediction_err"] = predicted_err
     out_data["uncertainty"] = predicted_err
 
-    # Get any measured genotypes found in the original dataset
-    mapper = ml_model.gpm.map("genotypes", "phenotypes")
-    out_data["measured"] = [mapper[g] if g in mapper else None for g in genotypes_to_predict]
+    # Maps genotype to phenotype and stdeviation within dataset
+    phenotype_mapper = ml_model.gpm.map("genotypes", "phenotypes")
+    err_mapper = ml_model.gpm.map("genotypes", "stdeviations")
 
-    # Get any measured error in origina dataset
-    mapper = ml_model.gpm.map("genotypes", "stdeviations")
-    out_data["measured_err"] = [mapper[g] if g in mapper else None for g in genotypes_to_predict]
+    # Get any measured genotypes found in the original dataset.  Stick them
+    # into the "measured" and "phenotypes" columns
+    out_data["measured"] = [phenotype_mapper[g] if g in phenotype_mapper else None
+                            for g in genotypes_to_predict]
+
+    # Get any measured error in original dataset
+    out_data["measured_err"] = [err_mapper[g] if g in err_mapper else None
+                                for g in genotypes_to_predict]
+
+    # Set phenotypes for the measured values to be the measured values, not the
+    # predictions.
+    for i, g in enumerate(genotypes_to_predict):
+
+        if g in measured_genotypes:
+            out_data["phenotypes"][i] = phenotype_mapper[g]
+            out_data["uncertainty"][i] = err_mapper[g]
+
 
     # Make sane column order
     column_order = ["genotypes","phenotypes","uncertainty",
