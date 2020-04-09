@@ -16,9 +16,9 @@ def read_file_to_gpmap(
     This should be a CSV file with the following columns:
     genotypes, phenotypes, n_replicates, stdeviations
     """
-    df = pd.read_csv(input_file_name, index_col=0)
-    required_columns = ["genotypes","phenotypes", "stdeviations", "n_replicates"]
-    optional_columns = []
+    df = pd.read_csv(input_file_name)
+    required_columns = ["genotypes","phenotypes"]
+    optional_columns = ["stdeviations","n_replicates"]
     for c in required_columns:
         try:
             df[c]
