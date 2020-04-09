@@ -147,11 +147,12 @@ def run(parser):
     # Call the subcommmand.
     try:
         main = kwargs.pop('main')
-        main(logger, **kwargs)
-
     # If nothing is passed, call --help
+
     except KeyError:
         parser.parse_args(["--help"])
+
+    main(logger, **kwargs)
 
 
 def entrypoint():
