@@ -143,9 +143,15 @@ def run(parser):
     # Parse incomding command.
     args = parser.parse_args()
     kwargs = vars(args)
+
     # Call the subcommmand.
-    main = kwargs.pop('main')
-    main(logger, **kwargs)
+    try:
+        main = kwargs.pop('main')
+        main(logger, **kwargs)
+
+    # If nothing is passed, call --help
+    except KeyError:
+        parser.parse_args(["--help"])
 
 
 def entrypoint():
