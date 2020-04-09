@@ -13,7 +13,7 @@ from .utils import (
     construct_model
 )
 
-import os 
+import os
 
 # Cutoff for zero
 NUMERICAL_CUTOFF = 1e-10
@@ -49,7 +49,6 @@ OPTIONAL_ARGUMENTS = {
         default=None
     )
 }
-
 
 def predict_to_dataframe(
     ml_model,
@@ -118,11 +117,18 @@ def predict_to_dataframe(
 
     # Set phenotypes for the measured values to be the measured values, not the
     # predictions.
+    phenotypes = []
+    uncertainty = []
     for i, g in enumerate(genotypes_to_predict):
 
         if g in measured_genotypes:
-            out_data["phenotypes"][i] = phenotype_mapper[g]
-            out_data["uncertainty"][i] = err_mapper[g]
+            phenotypes.append(phenotype_mapper[g])
+            uncertainty.append(err_mapper[g])
+        else:
+            phenotypes.append(out_data["phenotypes"].iloc[i])
+            uncertainty.append(out_data["uncertainty"].iloc[i])
+    out_data["phenotypes"] = phenotypes
+    out_data["uncertainty"] = uncertainty
 
 
     # Make sane column order
