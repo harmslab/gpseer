@@ -49,14 +49,16 @@ OPTIONAL_ARGUMENTS = {
         type=int,
         help="""
         The order of the spline used to estimate the nonlinearity in the
-        genotype-phenotype map.""",
+        genotype-phenotype map. (`k` in scipy.interpolate.UnivariateSpline)""",
         default=None,
     ),
     "--spline_smoothness": dict(
         type=int,
         help="""
         The 'smoothness' parameter used to smooth the spline when
-        estimating the nonlinearity in a genotype-phenotype map
+        estimating the nonlinearity in a genotype-phenotype map.
+        (`s` in scipy.interpolate.UnivariateSpline.  Increase this value if
+        the software throws "Try raising the value of `s` when initializing the spline model").
         """,
         default=10,
     ),

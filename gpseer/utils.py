@@ -1,4 +1,5 @@
 import pandas as pd
+
 from gpmap import GenotypePhenotypeMap
 from epistasis.models import (
     EpistasisPipeline,
@@ -91,7 +92,6 @@ def gpmap_from_gpmap(
         stdeviations=new_stdeviations,
         n_replicates=new_n_replicates
     )
-
 
 def construct_model(
     threshold=None,
