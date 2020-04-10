@@ -143,8 +143,14 @@ def run(parser):
     # Parse incomding command.
     args = parser.parse_args()
     kwargs = vars(args)
+
+    # grab subcommand; if nothing, call with --help
+    try:
+        main = kwargs.pop('main')
+    except KeyError:
+        parser.parse_args(["--help"])
+
     # Call the subcommmand.
-    main = kwargs.pop('main')
     main(logger, **kwargs)
 
 
