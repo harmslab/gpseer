@@ -177,7 +177,7 @@ def plot_correlation(model,prediction_df):
                            label=labels[i])
 
             # residual plot
-            residual = df_no)meas_err.prediction - df_no_meas_err.measured
+            residual = df_no_meas_err.prediction - df_no_meas_err.measured
 
             ax[1].errorbar(x=df_no_meas_err.measured,
                            y=residual,
