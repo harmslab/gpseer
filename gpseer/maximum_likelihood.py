@@ -83,7 +83,23 @@ def predict_to_dataframe(
     genotypes_to_predict.extend(measured_genotypes)
 
     predicted_phenotypes = ml_model.predict(X=genotypes_to_predict)
-    predicted_err = (1 - ml_model.score()) * np.mean(ml_model.gpm.phenotypes)
+
+    # If there is a detection threshold, we want to make sure
+    # that genotypes below the detection threshold are not
+    # counted as genotypes contributing to the uncertainty
+    # in the epistasis model for the predicted genotypes
+    # above the threshold.
+    if isinstance(ml_model[0], EpistasisLogisticRegression):
+        above = ml_model[0].classes == 1
+        above_genotypes = ml_model.gpm.genotypes[above]
+        above_phenotypes = ml_model.gpm.phenotypes[above]
+        predicted_err = (
+            (1 - ml_model.score(X=above_genotypes, y=above_phenotypes))
+            * np.mean(above_phenotypes)
+        )
+    else:
+        predicted_err = ((1 - ml_model.score()) * np.mean(ml_model.gpm.phenotypes))
+
 
     # Drop any nonsense uncertainty.
     if predicted_err < 0 and np.abs(predicted_err) < NUMERICAL_CUTOFF:

@@ -116,7 +116,7 @@ def construct_model(
     """
     model = EpistasisPipeline()
 
-    if threshold:
+    if threshold is not None:
         model.append(EpistasisLogisticRegression(threshold=threshold))
 
     if spline_order and spline_smoothness:
