@@ -271,6 +271,8 @@ def plot_histograms(model,prediction_df):
     return fig, ax
 
 
+
+
 def plots_to_pdf(model,prediction_df,out_root):
     """
     Plot a collection of summary graphs for a prediction, writing them to pdf.

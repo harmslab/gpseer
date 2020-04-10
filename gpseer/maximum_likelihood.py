@@ -54,13 +54,6 @@ OPTIONAL_ARGUMENTS = {
         """,
         default=None
     ),
-    "--overwrite": dict(
-        action="store_true",
-        help="""
-        Overwrite existing output.
-        """,
-        default=False
-    )
 }
 
 

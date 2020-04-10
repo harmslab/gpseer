@@ -7,7 +7,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 from . import fetch_example
 from . import maximum_likelihood
-from . import goodness_of_fit
+from . import cross_validate
 
 
 DESCRIPTION = """
@@ -69,6 +69,13 @@ OPTIONAL_ARGUMENTS = {
         """,
         default=1
     ),
+    "--overwrite": dict(
+        action="store_true",
+        help="""
+        Overwrite existing output.
+        """,
+        default=False
+    )
 }
 
 
@@ -113,7 +120,7 @@ def build_command_line():
     fetch.set_defaults(main=fetch_example.main)
 
     # Load subparsers from each submodule listed below.
-    submodules = {maximum_likelihood, goodness_of_fit}
+    submodules = {maximum_likelihood, cross_validate}
     for mod in submodules:
         # Constructs
         subparser = subparsers.add_parser(

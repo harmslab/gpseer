@@ -11,31 +11,30 @@ from .utils import (
 
 import os
 
-SUBCOMMAND = "goodness-of-fit"
+SUBCOMMAND = "cross-validate"
 
 DESCRIPTION = """
-goodness-of-fit: Estimate the 'goodness of fit' for a given model
-by generating multiple samples of training + test subsets of the data and
-calculate the pearson coefficient for each sample.
+cross-validate: Estimate the predictive power of a given model by generating
+multiple samples of the training + test subsets of the data and then calculating
+a training and test pearson coefficient for each sample.
 """
 
 HELP = """
-Estimate the 'goodness of fit' for a given model
-by generating multiple samples of training + test subsets of the data and
-calculate the pearson coefficient for each sample.
+Estimate the predictive power of a given model by generating
+multiple samples of the training + test subsets of the data and then calculating
+a training and test pearson coefficient for each sample.
 """
 
-ARGUMENTS = {
-    "n_samples": dict(
+ARGUMENTS = {}
+
+OPTIONAL_ARGUMENTS = {
+    "--n_samples": dict(
         type=int,
         help="""
         A CSV file GPSeer will create with final predictions.
         """,
         default=100
     )
-}
-
-OPTIONAL_ARGUMENTS = {
     "--output_file": dict(
         type=str,
         help="""
@@ -64,18 +63,23 @@ def main(
     spline_order=None,
     spline_smoothness=10,
     epistasis_order=1,
+    overwrite=False
 ):
 
     if os.path.isfile(output_file):
-        err = "output_file '{}' already exists.\n".format(output_file)
-        raise FileExistsError(err)
+        if not overwrite:
+            err = "output_file '{}' already exists.\n".format(output_file)
+            raise FileExistsError(err)
+        else:
+            os.remove(output_file)
 
     logger.info(f"Reading data from {input_file}...")
     gpm = read_file_to_gpmap(input_file, wildtype=wildtype)
     logger.info("└──> Done reading data.")
 
     logger.info("Sampling the data...")
-    scores = []
+    test_scores = []
+    train_scores = []
     for _ in tqdm(range(n_samples), desc="[GPSeer] └──>"):
         # Split the data.
         train_gpm, test_gpm = split_gpm(gpm, fraction=train_fraction)
@@ -89,14 +93,21 @@ def main(
         model.add_gpm(train_gpm)
         model.fit()
 
+        X = train_gpm.genotypes
+        y = train_gpm.phenotypes
+        train_score = model.score(X=X, y=y)
+        train_scores.append(train_score)
+
         X = test_gpm.genotypes
         y = test_gpm.phenotypes
-        score = model.score(X=X, y=y)
-        scores.append(score)
+        test_score = model.score(X=X, y=y)
+        test_scores.append(test_score)
+
     logger.info("└──> Done sampling data.")
 
     logger.info(f"Writing scores to {output_file}...")
-    df = pd.DataFrame({'scores': scores})
+    df = pd.DataFrame({'test_scores': test_scores,
+                       'train_scores': train_scores})
     df.to_csv(output_file)
     logger.info("└──> Done writing data.")
 
