@@ -1,7 +1,11 @@
 import pandas as pd
 import numpy as np
+
 from epistasis.models import (
+    EpistasisPipeline,
     EpistasisLogisticRegression,
+    EpistasisSpline,
+    EpistasisLinearRegression
 )
 
 from gpmap import GenotypePhenotypeMap
@@ -12,6 +16,8 @@ from .utils import (
     read_genotype_file,
     construct_model
 )
+
+from .plot import plots_to_pdf
 
 import os
 
@@ -47,8 +53,17 @@ OPTIONAL_ARGUMENTS = {
         and epistasis model.
         """,
         default=None
+    ),
+    "--overwrite": dict(
+        action="store_true",
+        help="""
+        Overwrite existing output.
+        """,
+        default=False
     )
 }
+
+
 
 def predict_to_dataframe(
     ml_model,
@@ -75,13 +90,16 @@ def predict_to_dataframe(
     df : DataFrame
         Formatted and sorted dataframe with predictions from the given model.
     """
+
+    # If no genotypes are specified, predict them all
     if not genotypes_to_predict:
         genotypes_to_predict = ml_model.gpm.get_missing_genotypes()
 
-    # Also predict the training data
+    # Predict on the training data as well as the missing data
     measured_genotypes = ml_model.gpm.genotypes[:]
     genotypes_to_predict.extend(measured_genotypes)
 
+    # Predict!
     predicted_phenotypes = ml_model.predict(X=genotypes_to_predict)
     predicted_err = (1 - ml_model.score()) * np.mean(ml_model.gpm.phenotypes)
 
@@ -115,32 +133,47 @@ def predict_to_dataframe(
     out_data["measured_err"] = [err_mapper[g] if g in err_mapper else None
                                 for g in genotypes_to_predict]
 
-    # Set phenotypes for the measured values to be the measured values, not the
-    # predictions.
+    # Add a column for classifier predictions if a classifier was used.  Give
+    # the sane name "above" or "below"
+    if isinstance(ml_model[0], EpistasisLogisticRegression):
+        classes = ml_model[0].predict(X=genotypes_to_predict)
+        out_data["phenotype_class"] = ["above" if c == 1 else "below" for c in classes]
+
+    # Do some clean up on the phenotypes and uncertainty so they make sense
+    # whatever precise model was used.
     phenotypes = []
     uncertainty = []
     for i, g in enumerate(genotypes_to_predict):
 
+        # Set phenotypes for the measured values to be the measured values, not
+        # the predictions.
         if g in measured_genotypes:
             phenotypes.append(phenotype_mapper[g])
             uncertainty.append(err_mapper[g])
         else:
             phenotypes.append(out_data["phenotypes"].iloc[i])
-            uncertainty.append(out_data["uncertainty"].iloc[i])
+
+            # Deal with uncertainty if threshold was used
+            try:
+                if out_data["phenotype_class"].iloc[i] == "below":
+                    uncertainty.append(0)
+                else:
+                    uncertainty.append(out_data["uncertainty"].iloc[i])
+            except KeyError:
+                uncertainty.append(out_data["uncertainty"].iloc[i])
+
+    # Record phenotypes and uncertainties
     out_data["phenotypes"] = phenotypes
     out_data["uncertainty"] = uncertainty
-
 
     # Make sane column order
     column_order = ["genotypes","phenotypes","uncertainty",
                     "measured","measured_err","n_replicates",
                     "prediction","prediction_err","phenotype_class",
                     "binary","n_mutations"]
-
-    # Add a column for classifier predictions if a classifier was used.
-    if isinstance(ml_model[0], EpistasisLogisticRegression):
-        out_data["phenotype_class"] = ml_model[0].predict(X=genotypes_to_predict)
-    else:
+    try:
+        out_data["phenotype_class"]
+    except KeyError:
         column_order.remove("phenotype_class")
 
     df = (
@@ -162,11 +195,15 @@ def main(
     epistasis_order=1,
     nreplicates=None,
     genotype_file=None,
+    overwrite=False
 ):
 
     if os.path.isfile(output_file):
-        err = "output_file '{}' already exists.\n".format(output_file)
-        raise FileExistsError(err)
+        if not overwrite:
+            err = "output_file '{}' already exists.\n".format(output_file)
+            raise FileExistsError(err)
+        else:
+            os.remove(output_file)
 
     logger.info(f"Reading data from {input_file}...")
     gpm = read_file_to_gpmap(input_file, wildtype=wildtype)
@@ -196,6 +233,16 @@ def main(
         genotypes_to_predict=genotypes_to_predict,
     )
     logger.info("└──> Done predicting.")
+
+    # Figure out the root for any output graphs
+    out_root = output_file.split(".")
+    if out_root[-1] in ["csv","txt","text","xls","xlsx"]:
+        out_root = ".".join(out_root[:-1])
+    else:
+        out_root = output_file
+
+    # Plot pdfs of diagnostic graphs
+    plots_to_pdf(model,out_df,out_root)
 
     logger.info(f"Writing phenotypes to {output_file}...")
     out_df.to_csv(output_file)
