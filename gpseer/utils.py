@@ -1,5 +1,4 @@
 import pandas as pd
-import matplotlib.pyplot as plt
 
 from gpmap import GenotypePhenotypeMap
 from epistasis.models import (
@@ -8,8 +7,6 @@ from epistasis.models import (
     EpistasisSpline,
     EpistasisLinearRegression
 )
-
-from epistasis.pyplot.nonlinear import plot_scale
 
 def read_file_to_gpmap(
     input_file_name,
@@ -95,24 +92,6 @@ def gpmap_from_gpmap(
         stdeviations=new_stdeviations,
         n_replicates=new_n_replicates
     )
-
-
-def plot_fit_results(
-    model
-):
-    """
-    Plot the result of a fit.
-    """
-
-    ax = None
-    for m in model:
-        print(type(m))
-        if isinstance(m,EpistasisSpline) or isinstance(m,EpistasisLogisticRegression):
-            ax = plot_scale(m)
-            ax.set_xlabel("y_{add}")
-            ax.set_ylabel("y_{obs}")
-            plt.savefig("yo.pdf")
-
 
 def construct_model(
     threshold=None,
