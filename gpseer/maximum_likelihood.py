@@ -16,12 +16,11 @@ from .utils import (
     gpmap_from_gpmap,
     read_file_to_gpmap,
     read_genotype_file,
-    construct_model
+    construct_model,
+    prep_for_output
 )
 
 from . import plot
-
-import os
 
 # Cutoff for zero
 NUMERICAL_CUTOFF = 1e-10
@@ -342,31 +341,13 @@ def main(
     overwrite=False
 ):
 
-    # Construct an output_root if not specified
-    if output_root is None:
-        split = input_file.split(".")
-        if len(split) == 1:
-            output_root = split[0]
-        else:
-            output_root = ".".join(split[:-1])
-
-    # Expected files this will create
     expected_outputs = ["_predictions.csv",
                         "_fit-information.csv",
                         "_convergence.csv",
                         "_spline-fit.pdf",
                         "_correlation-plot.pdf",
                         "_phenotype-histograms.pdf"]
-
-    # Make sure we're not going to wipe out an existing file
-    for e in expected_outputs:
-        output_file = "{}{}".format(output_root,e)
-        if os.path.isfile(output_file):
-            if not overwrite:
-                err = "output_file '{}' already exists.\n".format(output_file)
-                raise FileExistsError(err)
-            else:
-                os.remove(output_file)
+    output_root = prep_for_output(input_file,output_root,overwrite,expected_outputs)
 
     # Read the input file
     logger.info(f"Reading data from {input_file}...")

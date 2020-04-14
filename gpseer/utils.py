@@ -8,6 +8,8 @@ from epistasis.models import (
     EpistasisLinearRegression
 )
 
+import os
+
 def read_file_to_gpmap(
     input_file_name,
     wildtype=None,
@@ -125,3 +127,37 @@ def construct_model(
     model.append(EpistasisLinearRegression(order=epistasis_order))
 
     return model
+
+def prep_for_output(input_file,output_root=None,overwrite=False,expected_outputs=[]):
+    """
+    Prep output files and output root.
+
+    input_file: input file for calculation.
+    output_root: output_root to stick on all output files.  If None, build from
+                 input_file.
+    overwrite: whether or not to overwrite existing files.
+    expected_outputs: expected output file suffixes to check for.
+
+    returns: output_root.
+    """
+
+    # Construct an output_root if not specified
+    if output_root is None:
+        split = input_file.split(".")
+        if len(split) == 1:
+            output_root = split[0]
+        else:
+            output_root = ".".join(split[:-1])
+
+
+    # Make sure we're not going to wipe out an existing file
+    for e in expected_outputs:
+        output_file = "{}{}".format(output_root,e)
+        if os.path.isfile(output_file):
+            if not overwrite:
+                err = "output_file '{}' already exists.\n".format(output_file)
+                raise FileExistsError(err)
+            else:
+                os.remove(output_file)
+
+    return output_root

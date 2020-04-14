@@ -6,11 +6,10 @@ from epistasis.stats import split_gpm
 
 from .utils import (
     read_file_to_gpmap,
-    construct_model
+    construct_model,
+    prep_for_output
 )
 from . import plot
-
-import os
 
 SUBCOMMAND = "cross-validate"
 
@@ -108,28 +107,12 @@ def main(
     overwrite=False
 ):
 
-    # Construct an output_root if not specified
-    if output_root is None:
-        split = input_file.split(".")
-        if len(split) == 1:
-            output_root = split[0]
-        else:
-            output_root = ".".join(split[:-1])
-
     # Expected files this will create
     expected_outputs = ["_cross-validation-scores.csv",
                         "_correlation-plot.pdf"]
+    output_root = prep_for_output(input_file,output_root,overwrite,expected_outputs)
 
-    # Make sure we're not going to wipe out an existing file
-    for e in expected_outputs:
-        output_file = "{}{}".format(output_root,e)
-        if os.path.isfile(output_file):
-            if not overwrite:
-                err = "output_file '{}' already exists.\n".format(output_file)
-                raise FileExistsError(err)
-            else:
-                os.remove(output_file)
-
+    # Read data
     logger.info(f"Reading data from {input_file}...")
     gpm = read_file_to_gpmap(input_file, wildtype=wildtype)
     logger.info("└──> Done reading data.")
@@ -153,9 +136,7 @@ def main(
         spline_smoothness=spline_smoothness,
         epistasis_order=epistasis_order
     )
-
     df = cross_validate_to_dataframe(sub_model,gpm,n_samples,train_fraction)
-
     logger.info("└──> Done sampling data.")
 
     # -------------------------------------------------------------------------
@@ -163,7 +144,7 @@ def main(
     # -------------------------------------------------------------------------
 
     output_pdf = "{}_correlation-plot.pdf".format(output_root)
-    logger.info("Plotting {}...".format(output_pdf))
+    logger.info(f"Plotting {output_pdf}...")
     fig, ax = plot.plot_test_train(df,bin_scalar=5)
     fig.savefig(output_pdf)
     logger.info("└──> Done writing data.")
