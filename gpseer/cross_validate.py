@@ -8,6 +8,7 @@ from .utils import (
     read_file_to_gpmap,
     construct_model
 )
+from . import plot
 
 import os
 
@@ -34,7 +35,7 @@ OPTIONAL_ARGUMENTS = {
         A CSV file GPSeer will create with final predictions.
         """,
         default=100
-    )
+    ),
     "--output_file": dict(
         type=str,
         help="""
@@ -77,10 +78,23 @@ def main(
     gpm = read_file_to_gpmap(input_file, wildtype=wildtype)
     logger.info("└──> Done reading data.")
 
+    # Fit the model by itself
+    logger.info("Fitting all data data...")
+    full_model = construct_model(
+        threshold=threshold,
+        spline_order=spline_order,
+        spline_smoothness=spline_smoothness,
+        epistasis_order=epistasis_order
+    )
+    full_model.add_gpm(gpm)
+    full_model.fit()
+    logger.info("└──> Done fitting data.")
+
     logger.info("Sampling the data...")
     test_scores = []
     train_scores = []
     for _ in tqdm(range(n_samples), desc="[GPSeer] └──>"):
+
         # Split the data.
         train_gpm, test_gpm = split_gpm(gpm, fraction=train_fraction)
         # Fit model to data.
@@ -103,11 +117,33 @@ def main(
         test_score = model.score(X=X, y=y)
         test_scores.append(test_score)
 
-    logger.info("└──> Done sampling data.")
-
-    logger.info(f"Writing scores to {output_file}...")
     df = pd.DataFrame({'test_scores': test_scores,
                        'train_scores': train_scores})
+
+    logger.info("└──> Done sampling data.")
+
+    # -------------------------------------------------------------------------
+    # Plot results
+    # -------------------------------------------------------------------------
+
+    # Figure out the root for output graph
+    out_root = output_file.split(".")
+    if out_root[-1] in ["csv","txt","text","xls","xlsx"]:
+        out_root = ".".join(out_root[:-1])
+    else:
+        out_root = output_file
+
+    output_pdf = "{}_correlation-plot.pdf".format(out_root)
+    logger.info("Plotting {}...".format(output_pdf))
+    fig, ax = plot.plot_test_train(df,bin_scalar=5)
+    fig.savefig(output_pdf)
+    logger.info("└──> Done writing data.")
+
+    # -------------------------------------------------------------------------
+    # Write output file
+    # -------------------------------------------------------------------------
+
+    logger.info("Writing scores to {output_file}...")
     df.to_csv(output_file)
     logger.info("└──> Done writing data.")
 
