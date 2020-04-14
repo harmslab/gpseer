@@ -29,9 +29,9 @@ def plot_spline(model,prediction_df,title=None):
             spline_model = m
             break
 
+    # No spline to plot. 
     if spline_model is None:
-        err = "plot_spline can only be used for datasets using EpistasisSpline models\n"
-        raise ValueError(err)
+        return None, None
 
     # Grab data frame containing only values with measurements
     df = prediction_df[np.logical_not(prediction_df.measured.isnull())]
