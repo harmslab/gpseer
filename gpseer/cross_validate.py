@@ -54,6 +54,45 @@ OPTIONAL_ARGUMENTS = {
     )
 }
 
+def cross_validate_to_dataframe(model,gpm,n_samples=100,train_fraction=0.8):
+    """
+    Cross validate predictive power of model and return as a data frame of
+    training and test scores.
+
+    model: epistasis model to test
+    gpm: genotype-phenotype map to train and validate on
+    n_samples: number of n_samples
+    train_fraction: what fraction of the data to train on
+
+    returns: dataframe with test and train scores
+    """
+
+    test_scores = []
+    train_scores = []
+    for _ in tqdm(range(n_samples), desc="[GPSeer] └──>"):
+
+        # Split the data.
+        train_gpm, test_gpm = split_gpm(gpm, fraction=train_fraction)
+
+        # Fit model to data.
+        model.add_gpm(train_gpm)
+        model.fit()
+
+        X = train_gpm.genotypes
+        y = train_gpm.phenotypes
+        train_score = model.score(X=X, y=y)
+        train_scores.append(train_score)
+
+        X = test_gpm.genotypes
+        y = test_gpm.phenotypes
+        test_score = model.score(X=X, y=y)
+        test_scores.append(test_score)
+
+    df = pd.DataFrame({'test_scores': test_scores,
+                       'train_scores': train_scores})
+
+    return df
+
 
 def main(
     logger,
@@ -108,34 +147,14 @@ def main(
     logger.info("└──> Done fitting data.")
 
     logger.info("Sampling the data...")
-    test_scores = []
-    train_scores = []
-    for _ in tqdm(range(n_samples), desc="[GPSeer] └──>"):
+    sub_model = construct_model(
+        threshold=threshold,
+        spline_order=spline_order,
+        spline_smoothness=spline_smoothness,
+        epistasis_order=epistasis_order
+    )
 
-        # Split the data.
-        train_gpm, test_gpm = split_gpm(gpm, fraction=train_fraction)
-        # Fit model to data.
-        model = construct_model(
-            threshold=threshold,
-            spline_order=spline_order,
-            spline_smoothness=spline_smoothness,
-            epistasis_order=epistasis_order
-        )
-        model.add_gpm(train_gpm)
-        model.fit()
-
-        X = train_gpm.genotypes
-        y = train_gpm.phenotypes
-        train_score = model.score(X=X, y=y)
-        train_scores.append(train_score)
-
-        X = test_gpm.genotypes
-        y = test_gpm.phenotypes
-        test_score = model.score(X=X, y=y)
-        test_scores.append(test_score)
-
-    df = pd.DataFrame({'test_scores': test_scores,
-                       'train_scores': train_scores})
+    df = cross_validate_to_dataframe(sub_model,gpm,n_samples,train_fraction)
 
     logger.info("└──> Done sampling data.")
 
