@@ -65,7 +65,9 @@ OPTIONAL_ARGUMENTS = {
     "--epistasis_order": dict(
         type=int,
         help="""
-        The order of epistasis to include in the linear, high-order epistasis model
+        The order of epistasis to include in the linear, high-order epistasis model.
+        We *highly* recommend leaving this value at 1, as the addition of pairwise
+        and higher-ordered epistasis leads to overfitting and poor predictive power.
         """,
         default=1
     ),
