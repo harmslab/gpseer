@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 
+import epistasis
+
 from epistasis.models import (
     EpistasisPipeline,
     EpistasisLogisticRegression,
@@ -39,12 +41,14 @@ phenotypes in a sparsely sampled genotype-phenotype map.
 
 ARGUMENTS = {}
 OPTIONAL_ARGUMENTS = {
-    "--output_file": dict(
+    "--output_root": dict(
         type=str,
         help="""
-        A CSV file GPSeer will create with final predictions.
+        Root for all output files (e.g. {root}_predictions.csv,
+        {root}_spline-fit.pdf, etc.).  If none, this will be made from the
+        input file name
         """,
-        default="predictions.csv"
+        default=None
     ),
     "--genotype_file": dict(
         type=str,
@@ -54,14 +58,18 @@ OPTIONAL_ARGUMENTS = {
         """,
         default=None
     ),
+    "--overwrite": dict(
+        action="store_true",
+        help="""
+        Overwrite existing output.
+        """,
+        default=False
+    )
 }
 
 
 
-def predict_to_dataframe(
-    ml_model,
-    genotypes_to_predict=None
-):
+def predict_to_dataframe(ml_model,genotypes_to_predict=None):
     """
     Predict a list of genotypes using an ML model.
 
@@ -192,10 +200,109 @@ def predict_to_dataframe(
     )
     return df
 
+def create_stats_output(ml_model):
+    """
+    Return some stats about the predicted fits.
+
+    Parameters
+    ----------
+    ml_model : Epistasis model or EpistasisPipeline
+        Fitted model.
+
+    Returns
+    -------
+    stats_df : data frame containing statistics about the fits
+    convergence_df : data frame containing information about whether the model
+                     for each mutation has converged.
+    """
+
+    # Rip out the model parameters
+    threshold = None
+    spline_order = None
+    spline_smoothness = None
+    epistasis_order = 1
+    for m in ml_model:
+        if isinstance(m,EpistasisLogisticRegression):
+            threshold = m.threshold
+        elif isinstance(m,EpistasisSpline):
+            spline_order = m.k
+            spline_smoothness = m.s
+        elif isinstance(m,EpistasisLinearRegression):
+            epistasis_order = m.order
+        else:
+            err = "epistasis model {} not recognized\n".format(m)
+            raise RuntimeError(err)
+
+    # Construct a list of mutation names corresponding to each
+    # position in the binary genotypes vector.
+    mutation_names = []
+    for index in ml_model.gpm.encoding_table.index:
+        row = ml_model.gpm.encoding_table.loc[index,:]
+        if row.wildtype_letter == row.mutation_letter:
+            continue
+
+        mutation = "{}{}{}".format(row.wildtype_letter,
+                                   row.site_label,
+                                   row.mutation_letter)
+        mutation_names.append(mutation)
+
+    # Record all genotypes seen as as numpy array of binary integers
+    genotypes_as_int = np.array([[int(m) for m in bin_genotype]
+                                 for bin_genotype in ml_model.gpm.binary],
+                                dtype=np.int)
+
+    # Record the number of times each genotype was seen
+    num_obs = np.sum(genotypes_as_int,axis=0)
+    mean_num_obs = np.mean(num_obs)
+    min_num_obs = np.min(num_obs)
+
+    # Calculate the epistasis remaining in the map
+    if isinstance(ml_model[0], EpistasisLogisticRegression):
+        above = ml_model[0].classes == 1
+        above_genotypes = ml_model.gpm.genotypes[above]
+        above_phenotypes = ml_model.gpm.phenotypes[above]
+        epistasis = 1 - ml_model.score(X=above_genotypes, y=above_phenotypes)
+    else:
+        epistasis = 1 - ml_model.score()
+
+    # Calculate how many times we need to see each genotype to resolve
+    # the map given this amount of epistasis.  This is from Figure 5
+    # "epistasis as uncertainty" in the manuscript describing gpseer.
+    num_obs_for_convergence = 83.896*epistasis + 1.5843
+
+    # Calculate whether each mutation is expected to be converged
+    converged = [n > num_obs_for_convergence for n in num_obs]
+
+    # Calculate how high above (or below) convergence this
+    # mutation is
+    fold_target = [n/num_obs_for_convergence for n in num_obs]
+
+    # Construct a data frame with summary statistics
+    to_add = {"num_genotypes":len(genotypes_as_int),
+              "num_unique_mutations":len(num_obs),
+              "unexplained variation (epistasis)":epistasis,
+              "num_obs_to_converge":num_obs_for_convergence,
+              "threshold":threshold,
+              "spline_order":spline_order,
+              "spline_smoothness":spline_smoothness,
+              "epistasis_order":epistasis_order}
+
+    stats_df = pd.DataFrame(columns=["parameter","value"])
+    for i, a in enumerate(to_add.keys()):
+        stats_df.loc[i] = [a,to_add[a]]
+
+    # Construct a data frame describing whether each mutation
+    # is converged or not
+    convergence_df = pd.DataFrame({"mutation":mutation_names,
+                                   "num_obs":num_obs,
+                                   "fold_target":fold_target,
+                                   "converged":converged})
+
+    return stats_df, convergence_df
+
 def plots_to_pdf(model,prediction_df,out_root):
     """
     Plot a collection of summary graphs for a prediction, writing them to pdf.
-
     model: EpistasisPipline object containing completed fit
     prediction_df: prediction_to_dataframe output, containing finalized dataframe
                   with predictions
@@ -218,13 +325,13 @@ def plots_to_pdf(model,prediction_df,out_root):
     # Plot histograms of values for measured values, training set predictions,
     # and test set predictions
     fig, ax = plot.plot_histograms(model,prediction_df)
-    fig.savefig("{}_histograms.pdf".format(out_root))
+    fig.savefig("{}_phenotype-histograms.pdf".format(out_root))
 
 
 def main(
     logger,
     input_file,
-    output_file="predictions.csv",
+    output_root=None,
     wildtype=None,
     threshold=None,
     spline_order=None,
@@ -235,17 +342,38 @@ def main(
     overwrite=False
 ):
 
-    if os.path.isfile(output_file):
-        if not overwrite:
-            err = "output_file '{}' already exists.\n".format(output_file)
-            raise FileExistsError(err)
+    # Construct an output_root if not specified
+    if output_root is None:
+        split = input_file.split(".")
+        if len(split) == 1:
+            output_root = split[0]
         else:
-            os.remove(output_file)
+            output_root = ".".join(split[:-1])
 
+    # Expected files this will create
+    expected_outputs = ["_predictions.csv",
+                        "_fit-information.csv",
+                        "_convergence.csv",
+                        "_spline-fit.pdf",
+                        "_correlation-plot.pdf",
+                        "_phenotype-histograms.pdf"]
+
+    # Make sure we're not going to wipe out an existing file
+    for e in expected_outputs:
+        output_file = "{}{}".format(output_root,e)
+        if os.path.isfile(output_file):
+            if not overwrite:
+                err = "output_file '{}' already exists.\n".format(output_file)
+                raise FileExistsError(err)
+            else:
+                os.remove(output_file)
+
+    # Read the input file
     logger.info(f"Reading data from {input_file}...")
     gpm = read_file_to_gpmap(input_file, wildtype=wildtype)
     logger.info("└──> Done reading data.")
 
+    # Construct a model based on the input parameters
     logger.info("Constructing a model...")
     model = construct_model(
         threshold=threshold,
@@ -256,14 +384,32 @@ def main(
     model.add_gpm(gpm)
     logger.info("└──> Done constructing model.")
 
+    # Fit the model to the data
     logger.info("Fitting data...")
-    model.fit()
+
+    try:
+        model.fit()
+    except epistasis.models.utils.FittingError as err:
+
+        # Brittle check to see if this is the univariate spline error.  If it
+        # is, return a useful help message.
+        if err.args[0].startswith("scipy.interpolate.UnivariateSpline fitting returned more parameters"):
+            informative_err = "\n\nspline fit failed.  Try increasing --spline_smoothness\n"
+            raise RuntimeError(informative_err)
+
+        # If not, re-raise the error.  If our brittle check for the specific
+        # error fails, we'll still get an informative error back from epistasis
+        # (and sklearn/scipy)
+        raise err
+
     logger.info("└──> Done fitting data.")
 
+    # Figure out which genotypes to predict.
     genotypes_to_predict = None
     if genotype_file:
         genotypes_to_predict = read_genotype_file(wildtype, genotype_file)
 
+    # Do the actual prediction
     logger.info("Predicting missing data...")
     out_df = predict_to_dataframe(
         model,
@@ -271,18 +417,23 @@ def main(
     )
     logger.info("└──> Done predicting.")
 
-    # Figure out the root for any output graphs
-    out_root = output_file.split(".")
-    if out_root[-1] in ["csv","txt","text","xls","xlsx"]:
-        out_root = ".".join(out_root[:-1])
-    else:
-        out_root = output_file
+    # Calculate some stats
+    logger.info("Calculating fit statistics...")
+    stats_df, convergence_df = create_stats_output(model)
+    stats_df.to_csv("{}_fit-information.csv".format(output_root))
+    convergence_df.to_csv("{}_convergence.csv".format(output_root))
+    logger.info("└──> Done.")
 
-    # Plot pdfs of diagnostic graphs
-    plots_to_pdf(model,out_df,out_root)
-
+    # Write phenotypes
+    output_file = "{}_predictions.csv".format(output_root)
     logger.info(f"Writing phenotypes to {output_file}...")
     out_df.to_csv(output_file)
     logger.info("└──> Done writing predictions!")
+
+    # Plot pdfs of diagnostic graphs
+    logger.info(f"Writing plots...")
+    plots_to_pdf(model,out_df,output_root)
+    logger.info("└──> Done plotting!")
+
 
     logger.info("GPSeer finished!")
