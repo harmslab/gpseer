@@ -1,4 +1,5 @@
 import pytest
+import os
 
 from gpseer.cross_validate import (
     main
@@ -17,21 +18,26 @@ def test_main(
     datafiles
 ):
     infile = datafiles / 'example-full.csv'
-    outfile = tmp_path / 'example-scores.csv'
+    outroot = tmp_path / 'cv'
     n_samples = 5
 
     main(
         logger,
         str(infile),
         n_samples,
-        output_file=str(outfile),
+        output_root=str(outroot),
     )
 
-    assert outfile.is_file()
+    expected_outputs = ["_cross-validation-scores.csv",
+                        "_correlation-plot.pdf"]
+    for e in expected_outputs:
+        outfile = "{}{}".format(outroot,e)
+        assert os.path.isfile(outfile)
 
     # Assert logging is working
+    main_out = "{}_cross-validation-scores.csv".format(outroot)
     console = console_log.getvalue()
     assert f"Reading data from {infile}..." in console
     assert "Sampling the data..." in console
-    assert f"Writing scores to {outfile}..." in console
+    assert f"Writing scores to {main_out}..." in console
     assert "GPSeer finished!" in console
