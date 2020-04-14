@@ -143,7 +143,7 @@ def main(
     # Write output file
     # -------------------------------------------------------------------------
 
-    logger.info("Writing scores to {output_file}...")
+    logger.info(f"Writing scores to {output_file}...")
     df.to_csv(output_file)
     logger.info("└──> Done writing data.")
 
