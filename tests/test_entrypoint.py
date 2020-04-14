@@ -10,8 +10,8 @@ def test_estimate_ml_help(script_runner):
     assert ret.success
 
 
-def test_goodness_of_fit_help(script_runner):
-    ret = script_runner.run('gpseer', 'goodness-of-fit', '-h')
+def test_cross_validate_help(script_runner):
+    ret = script_runner.run('gpseer', 'cross-validate', '-h')
     assert ret.success
 
 

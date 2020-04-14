@@ -13,12 +13,13 @@ from epistasis.pyplot.nonlinear import plot_scale
 
 from collections import OrderedDict
 
-def plot_spline(model,prediction_df):
+def plot_spline(model,prediction_df,title=None):
     """
     Plot the results of the spline fit portion of the epistasis model.
 
     model: epistasis pipeline model (fit)
     prediction_df: data frame containing predicted and measured values
+    title: title for plot
     """
 
     # Find the spline model in this epistasis pipeline
@@ -106,12 +107,13 @@ def plot_spline(model,prediction_df):
 
     return fig, ax
 
-def plot_correlation(model,prediction_df):
+def plot_correlation(model,prediction_df,title=None):
     """
     Plot the correlation between the predicted and measured phenotypes.
 
     model: epistasis pipeline model (fit)
     prediction_df: data frame containing predicted and measured values
+    title: title for plot
     """
 
     # Grab data frame containing only values with measurements
@@ -226,19 +228,20 @@ def plot_correlation(model,prediction_df):
 
     return fig, ax
 
-def plot_histograms(model,prediction_df):
+def plot_histograms(model,prediction_df,title=None):
     """
     Plot histograms of measured values, training set predictions, and test set
     predictions.
 
     model: epistasis pipeline model (fit)
     prediction_df: data frame containing predicted and measured values
+    title: title for plot
     """
 
     # Construct bins for histograms
     min_value = np.min(prediction_df[["prediction","measured"]].min())
     max_value = np.max(prediction_df[["prediction","measured"]].max())
-    num_values = round(np.sqrt(len(prediction_df["prediction"])),0).astype(int)
+    num_values = 2*round(np.sqrt(len(prediction_df["prediction"])),0).astype(int)
     bins = np.linspace(min_value*0.99,max_value*1.01,num_values)
 
     # Slice test and training sets out
@@ -271,30 +274,58 @@ def plot_histograms(model,prediction_df):
     return fig, ax
 
 
-def plots_to_pdf(model,prediction_df,out_root):
+def plot_test_train(df,bin_scalar=5):
     """
-    Plot a collection of summary graphs for a prediction, writing them to pdf.
+    Plot 2D histogram of training and test R2 values from resampled data.
 
-    model: EpistasisPipline object containing completed fit
-    prediction_df: prediction_to_dataframe output, containing finalized dataframe
-                  with predictions
-    out_root: root name for all output pdfs
+    df: data frame containing test and training scores.
+    bin_scalar: scalar for constructing 2D histogram bins
     """
 
-    # First, see if we need to plot a spline
-    for m in model:
+    num_bins = int(round(np.sqrt(len(df)*bin_scalar),0))
 
-        # If we see a spline...
-        if isinstance(m,EpistasisSpline):
-            plt, ax = plot_spline(model,prediction_df)
-            plt.savefig("{}_spline-fit.pdf".format(out_root))
-            break
+    fig, ax = plt.subplots()
 
-    # Plot correlation between predicted and observed values for training set
-    fig, ax = plot_correlation(model,prediction_df)
-    fig.savefig("{}_correlation-plot.pdf".format(out_root))
+    # make min_value that are close to 0.0 as 0.0
+    min_value = np.min(df.min(skipna=True))
+    if min_value < 0.1:
+        min_value = 0.0
 
-    # Plot histograms of values for measured values, training set predictions,
-    # and test set predictions
-    fig, ax = plot_histograms(model,prediction_df)
-    fig.savefig("{}_histograms.pdf".format(out_root))
+    # Crank max value to 1.0
+    max_value = 1
+    five_pct = (max_value - min_value)*0.05
+
+    hist = ax.hist2d(df.train_scores,
+                     df.test_scores,
+                     bins=[np.linspace(0,1,num_bins),np.linspace(0,1,num_bins)],
+                     cmap="plasma")
+
+    ax.set_aspect('equal', 'box')
+    fig.tight_layout()
+
+    median = np.unravel_index(np.argmax(hist[0],axis=None),hist[0].shape)
+    train_median = hist[1][median[0]]
+    test_median = hist[2][median[1]]
+
+    ax.plot((train_median,train_median),(0,1),"--",color="white")
+    ax.plot((0,1),(test_median,test_median),"--",color="white")
+
+    ax.text(min_value + 2*five_pct,
+            min_value + 3*five_pct,
+            "R_train: {:.2f}".format(train_median),color="white")
+
+    ax.text(min_value + 2*five_pct,
+            min_value + 2*five_pct,
+            "R_test: {:.2f}".format(test_median),color="white")
+
+    #if min_value > 0.9:
+#        min_value = 0.9
+
+    ax.set_xlim(min_value,1)
+    ax.set_ylim(min_value,1)
+    ax.set_xlabel("train R2")
+    ax.set_ylabel("test R2")
+
+    ax.set_title("distribution of R2 train and test")
+
+    return fig, ax

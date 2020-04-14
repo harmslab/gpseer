@@ -17,7 +17,7 @@ from .utils import (
     construct_model
 )
 
-from .plot import plots_to_pdf
+from . import plot
 
 import os
 
@@ -54,13 +54,6 @@ OPTIONAL_ARGUMENTS = {
         """,
         default=None
     ),
-    "--overwrite": dict(
-        action="store_true",
-        help="""
-        Overwrite existing output.
-        """,
-        default=False
-    )
 }
 
 
@@ -198,6 +191,34 @@ def predict_to_dataframe(
         .reset_index(drop=True)
     )
     return df
+
+def plots_to_pdf(model,prediction_df,out_root):
+    """
+    Plot a collection of summary graphs for a prediction, writing them to pdf.
+
+    model: EpistasisPipline object containing completed fit
+    prediction_df: prediction_to_dataframe output, containing finalized dataframe
+                  with predictions
+    out_root: root name for all output pdfs
+    """
+
+    # First, see if we need to plot a spline
+    for m in model:
+
+        # If we see a spline...
+        if isinstance(m,EpistasisSpline):
+            fig, ax = plot.plot_spline(model,prediction_df)
+            fig.savefig("{}_spline-fit.pdf".format(out_root))
+            break
+
+    # Plot correlation between predicted and observed values for training set
+    fig, ax = plot.plot_correlation(model,prediction_df)
+    fig.savefig("{}_correlation-plot.pdf".format(out_root))
+
+    # Plot histograms of values for measured values, training set predictions,
+    # and test set predictions
+    fig, ax = plot.plot_histograms(model,prediction_df)
+    fig.savefig("{}_histograms.pdf".format(out_root))
 
 
 def main(

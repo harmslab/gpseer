@@ -1,6 +1,6 @@
 import pytest
 
-from gpseer.goodness_of_fit import (
+from gpseer.cross_validate import (
     main
 )
 
