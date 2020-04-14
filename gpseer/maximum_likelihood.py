@@ -308,14 +308,10 @@ def plots_to_pdf(model,prediction_df,out_root):
     out_root: root name for all output pdfs
     """
 
-    # First, see if we need to plot a spline
-    for m in model:
-
-        # If we see a spline...
-        if isinstance(m,EpistasisSpline):
-            fig, ax = plot.plot_spline(model,prediction_df)
-            fig.savefig("{}_spline-fit.pdf".format(out_root))
-            break
+    # Create a spline.  If no spline in pipeline, will be None.
+    fig, ax = plot.plot_spline(model,prediction_df)
+    if fig is not None:
+        fig.savefig("{}_spline-fit.pdf".format(out_root))
 
     # Plot correlation between predicted and observed values for training set
     fig, ax = plot.plot_correlation(model,prediction_df)
@@ -401,6 +397,8 @@ def main(
     # Calculate some stats
     logger.info("Calculating fit statistics...")
     stats_df, convergence_df = create_stats_output(model)
+    logger.info(f"\n\nFit statistics:\n---------------\n\n{stats_df}\n\n")
+    logger.info(f"\n\nConvergence:\n------------\n\n{convergence_df}\n\n")
     stats_df.to_csv("{}_fit-information.csv".format(output_root))
     convergence_df.to_csv("{}_convergence.csv".format(output_root))
     logger.info("└──> Done.")
