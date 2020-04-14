@@ -16,12 +16,11 @@ from .utils import (
     gpmap_from_gpmap,
     read_file_to_gpmap,
     read_genotype_file,
-    construct_model
+    construct_model,
+    prep_for_output
 )
 
 from . import plot
-
-import os
 
 # Cutoff for zero
 NUMERICAL_CUTOFF = 1e-10
@@ -309,14 +308,10 @@ def plots_to_pdf(model,prediction_df,out_root):
     out_root: root name for all output pdfs
     """
 
-    # First, see if we need to plot a spline
-    for m in model:
-
-        # If we see a spline...
-        if isinstance(m,EpistasisSpline):
-            fig, ax = plot.plot_spline(model,prediction_df)
-            fig.savefig("{}_spline-fit.pdf".format(out_root))
-            break
+    # Create a spline.  If no spline in pipeline, will be None.
+    fig, ax = plot.plot_spline(model,prediction_df)
+    if fig is not None:
+        fig.savefig("{}_spline-fit.pdf".format(out_root))
 
     # Plot correlation between predicted and observed values for training set
     fig, ax = plot.plot_correlation(model,prediction_df)
@@ -342,31 +337,13 @@ def main(
     overwrite=False
 ):
 
-    # Construct an output_root if not specified
-    if output_root is None:
-        split = input_file.split(".")
-        if len(split) == 1:
-            output_root = split[0]
-        else:
-            output_root = ".".join(split[:-1])
-
-    # Expected files this will create
     expected_outputs = ["_predictions.csv",
                         "_fit-information.csv",
                         "_convergence.csv",
                         "_spline-fit.pdf",
                         "_correlation-plot.pdf",
                         "_phenotype-histograms.pdf"]
-
-    # Make sure we're not going to wipe out an existing file
-    for e in expected_outputs:
-        output_file = "{}{}".format(output_root,e)
-        if os.path.isfile(output_file):
-            if not overwrite:
-                err = "output_file '{}' already exists.\n".format(output_file)
-                raise FileExistsError(err)
-            else:
-                os.remove(output_file)
+    output_root = prep_for_output(input_file,output_root,overwrite,expected_outputs)
 
     # Read the input file
     logger.info(f"Reading data from {input_file}...")
@@ -420,6 +397,8 @@ def main(
     # Calculate some stats
     logger.info("Calculating fit statistics...")
     stats_df, convergence_df = create_stats_output(model)
+    logger.info(f"\n\nFit statistics:\n---------------\n\n{stats_df}\n\n")
+    logger.info(f"\n\nConvergence:\n------------\n\n{convergence_df}\n\n")
     stats_df.to_csv("{}_fit-information.csv".format(output_root))
     convergence_df.to_csv("{}_convergence.csv".format(output_root))
     logger.info("└──> Done.")
