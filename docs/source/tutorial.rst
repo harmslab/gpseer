@@ -9,6 +9,10 @@ transports a small molecule.  It is binary map with eight sites, so it has
 :math:`2^{8}=256` genotypes.  Of these, we have experimental measurements of
 the transport phenotype for 76 genotypes.
 
+As an aside, the `API Demo.ipynb <https://github.com/harmsmlab/gpseer/raw/master/examples/API%20Demo.ipynb>`_
+demonstrates how to use GPSeer in a Jupyter notebook. All of the work in this
+tutorial can be done in a notebook rather than on the command line.
+
 If you haven't already, you can download the data file containing the measurements,
 ``pfcrt-raw-data.csv``, by running:
 
@@ -26,7 +30,7 @@ We'll start by fitting an additive model to the data. In this model, each
 mutation has an additive, linear effect on the phenotype. We
 predict the phenotype of each genotype as the sum of the effect of all
 mutations that are found in that genotype.  The additive model is the default
-model, so we you can run the following:
+model, so you can run the following:
 
 .. code-block::
 
@@ -170,7 +174,7 @@ that their assay bottoms out at 5.  This means a negative control can give a
 value anywhere from 0 to 5 under their assay conditions.  But our model doesn't
 know this and will dutifully record that a phenotype of 3 is higher than a
 phenotype of 1, which is less than a phenotype of 5.  The model tries to explain
-these differences due to differences in the sequences of the genotypes.  As
+these differences as due to differences in the sequences of the genotypes.  As
 a result, we inject random noise into our fit and screw up our predictions of
 these points that are below the detection threshold.
 
@@ -197,9 +201,9 @@ This gave a slight increase in our explained variance (``0.832`` rather than
 .. image:: tutorial_1_threshold5_spline-fit.png
     :align: center
 
-Notice that almost all of those strange points have no collapsed down to zero:
+Notice that almost all of those strange points have now collapsed down to zero:
 our classifier has identified all of the gray points as being below the detection
-threshold.  How lets look at the correlation plot in ``linear_spline2_threshold5_correlation-plot.pdf``:
+threshold.  Now lets look at the correlation plot in ``linear_spline2_threshold5_correlation-plot.pdf``:
 
 .. image:: tutorial_1_2nd_threshold5_correlation.png
     :align: center

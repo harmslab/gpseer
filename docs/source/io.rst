@@ -18,7 +18,7 @@ GPSeer requires a csv file with the following columns:
 * :code:`phenotypes`: A decimal (float) number describing the quantitative
   phenotype of that genotype.
 
-See the example input file `here <https://github.com/harmslab/gpseer/raw/master/examples/example-full.csv>`_.
+See an example input file `here <https://github.com/harmslab/gpseer/raw/master/examples/example-full.csv>`_.
 
 It can also optionally take columns:
 
@@ -35,7 +35,7 @@ regression is weighted by the standard error on the mean.
 Genotypes file (optional)
 .........................
 
-The genotypes file is used by the ``estimate-ml`` subcommand to predict the
+The genotypes file is used by GPSeer to predict the
 phenotypes of a user-defined set of genotypes. This file is a list of genotypes
 in a text file. See an example `here <https://github.com/harmslab/gpseer/raw/master/examples/genotypes.txt>`_.
 If this file is not given, GPSeer will predict the phenotypes of all possible
@@ -72,15 +72,15 @@ Output
 
   + *genotypes*: genotype
   + *phenotypes*: Best guess for phenotype of this genotype.  If this phenotype
-    measured, this will be the *measured* value ("KSTRDCDA").  Otherwise, this
+    measured, this will be the *measured* value (e.g. "KSTRDCDA").  Otherwise, this
     will be the predicted value.  If no threshold is used or the genotype is
     predicted to be above the threshold, this column will have the quantitative
-    output of the epistasis model + spline ("KSTVDCDC" above).  If a threshold
+    output of the epistasis model + spline (e.g. "KSTVDCDC").  If a threshold
     was used and the genotype is predicted to be below it, this will be
-    the threshold value ("KSTVNCCC" above).
+    the threshold value (e.g. "KSTVNCCC").
   + *uncertainty*: Phenotype uncertainty.  If measured, this is the measurement
-    uncertainty; if no threshold or above the threshold, this is the epistasis
-    in the system; if below the threshold, no uncertainty is assigned.
+    uncertainty; if no threshold is specified or the phenotype is above the threshold, this is the uncertainty
+    in the linear model; if the phenotype is below the threshold, no uncertainty is assigned.
   + *measured*: Measured phenotype for this genotype.  If this is a prediction,
     this will be empty.
   + *measured_err*: Measured error for this phenotype.  If this is a prediction,
@@ -91,7 +91,7 @@ Output
     prediction will be made for all genotypes, even those with measured values
     or predicted to be below the threshold.
   + *prediction_err*: Quantitative uncertainty in the prediction.  This will be
-    the same for all genotypes: it is :math:`(1 - R^{2})\times mean(phenotype)`
+    the same for all genotypes: it is :math:`(1 - R^{2})\times \langle phenotypes \rangle`
     for the quantitative model.
   + *phenotype_class*: If a threshold was used, this will indicate whether the
     genotype was classified to be above or below the detection threshold.
@@ -105,9 +105,9 @@ Output
 
   + *num_genotypes*: Number of genotypes in the map.
   + *num_mutations*: Number of unique mutations in the map.
-  + *explained_variation*: :math:`R^2` for the quantitiative model
-  + *num_obs_converge*: Number of observations of each genotype required to
-    allow convergence of an additive model given the amount of epistasis
+  + *explained_variation*: :math:`R^2` for the quantitative model
+  + *num_obs_converge*: Number of times each mutation must be observed for
+    convergence of an additive model given the amount of epistasis
     in the map.
   + *num_parameters*: Number of parameters in the model.
   + *threshold*: threshold value used in the fit.  If no threshold was used,
@@ -117,7 +117,6 @@ Output
   + *spline_smoothness*: spline smoothness parameter.  If no spline was used,
     this will be empty.
   + *epistasis_order*: the order of the epistatic model used.
-  + XXXX NUMBER OF FIT PARAMETERS, FINAL LIKELIHOOD
 
 
 * **{output_root}_convergence.csv**: A csv file containing information about the
@@ -143,7 +142,7 @@ Output
   genotype.  Both prediction and measurement uncertainty (if available) are
   plotted with error bars.  If a threshold was applied, phenotypes below the
   threshold will be plotted as gray points.  The lower panel indicates the fit
-  residuals.  A perfect fit will be randomly distributed about zero.
+  residuals.  A high quality fit will be randomly distributed about zero.
 
   .. image:: correlation-plot.png
     :align: center

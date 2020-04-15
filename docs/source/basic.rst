@@ -6,6 +6,8 @@ This is a very quick introduction to gpseer that demonstrates the basic modes of
 the software. A complete tutorial--including how to interpret the outputs of the
 calculation--is given on the `tutorial <tutorial.html>`_ page.
 
+The `API Demo.ipynb <https://github.com/harmsmlab/gpseer/raw/master/examples/API%20Demo.ipynb>`_
+demonstrates how to use GPSeer in a Jupyter notebook.
 
 Downloading examples
 --------------------
@@ -103,7 +105,7 @@ Compute the predictive power of the model by cross-validation
 
 Estimate how well your model is predicting data using the "cross-validate"
 subcommand. Try the example below where we generate 10 subsets from the data
-and compute our prediction scores. 
+and compute our prediction scores.
 
 .. code-block::
 
