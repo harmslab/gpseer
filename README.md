@@ -15,6 +15,11 @@ To use as a command line, call `gpseer` on an input `.csv` file containing genot
 The [API Demo.ipynb](https://nbviewer.jupyter.org/github/harmslab/gpseer/blob/master/examples/API%20Demo.ipynb)
 demonstrates how to use GPSeer in a Jupyter notebook.
 
++ [Docmentation](https://gpseer.readthedocs.io) 
++ [Tutorial](https://gpseer.readthedocs.io/en/latest/tutorial.html)
+
+
+
 ### Downloading the example
 
 To get started, use GPSeer's `fetch-example` command to download an example from its Github repo.
