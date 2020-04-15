@@ -9,12 +9,21 @@ GPSeer
 
 *Simple software for inferring missing data in sparsely measured genotype-phenotype maps*
 
-Background
-==========
+GPSeer uses a simple, straightforward approach to infer the missing phenotypes
+from an incomplete genotype-phenotype map, with well-characterized uncertainty
+in its predictions.  Such knowledge allows robust and statistically-informed
+analyses of features of the map, such as knowledge of possible evolutionary
+trajectories.
 
-Experimentally characterizing genotype-phenotype maps can be very challenging because the size of a map expands exponentially as the number of mutations increases.  For example, a map with four mutational sites, each existing in one of two states, includes 16 genotypes (:math:`2^{4}`).  By contrast, a map with 15 mutational sites consists of 32,768 genotypes (:math:`2^{15}`).  Exhaustive characterization of the phenotypes in a map is often infeasible, particularly for phenotypes that are difficult to characterize by high-throughput methods.
+Citation coming soon.
 
-To address this shortfall, we have developed a straightforward approach to infer the missing phenotypes from an incomplete genotype-phenotype map, with well-characterized uncertainty in our predictions.  Such knowledge allows robust and statistically-informed analyses of features of the map, such as knowledge of possible evolutionary trajectories.
+ + `Installation <install.html>`_
+ + `Quick start <basic.html>`_
+ + `Description of the model <model.html>`_
+ + `Tutorial <tutorial.html>`_
+ + `Description of file inputs and outputs <io.html>`_
+ + `Description of command line arguments <interface.html>`_
+
 
 
 .. toctree::
@@ -23,5 +32,7 @@ To address this shortfall, we have developed a straightforward approach to infer
 
     install
     basic
+    model
+    tutorial
     io
     interface
