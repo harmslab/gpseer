@@ -1,7 +1,7 @@
 Tutorial
 ========
 
-Predicting phentoypes with a maximum likelihood model
+Predicting phenotypes with a maximum likelihood model
 -----------------------------------------------------
 
 We're going to fill in unmeasured phenotypes for the genotype-phenotype map of a protein that

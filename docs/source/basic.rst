@@ -4,7 +4,7 @@ Quick Start
 
 This is a very quick introduction to gpseer that demonstrates the basic modes of
 the software. A complete tutorial--including how to interpret the outputs of the
-calculation--is given on the `tutorial <tutorial.html>`_ page.  
+calculation--is given on the `tutorial <tutorial.html>`_ page.
 
 
 Downloading examples
@@ -26,7 +26,13 @@ Download the gpseer examples:
     > cd examples/
     > ls
 
-    example-full.csv  example-test.csv  example-train.csv
+    API Demo.ipynb
+    example-full.csv
+    example-test.csv
+    example-train.csv
+    Generate Dataset.ipynb
+    genotypes.txt
+    pfcrt-raw-data.csv
 
 
 Predicting unmeasured phenotypes of from a collection of measured phenotypes
@@ -97,7 +103,7 @@ Compute the predictive power of the model by cross-validation
 
 Estimate how well your model is predicting data using the "cross-validate"
 subcommand. Try the example below where we generate 10 subsets from the data
-and compute our prediction scores. The output can be found in the `"scores.csv"` file.
+and compute our prediction scores. 
 
 .. code-block::
 
