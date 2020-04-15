@@ -18,13 +18,13 @@ Dependencies
 3. `tqdm <https://github.com/tqdm/tqdm>`_: Progress bars in Python.
 4. `gpmap <https://gpmap.readthedocs.io/en/latest/>`_: Python API for storing and manipulating genotype-phenotype maps
 5. `epistasis <https://epistasis.readthedocs.io/>`_: Python API for extracting and analyzing epistasis in genotype-phenotype maps
-
+6. `matplotlib <https://matplotlib.org/>`_: Python API for plotting.
+7. `requests <https://requests.readthedocs.io/en/master/>`_: Python API for downloading data via HTTP.
 
 Installing from source
 ----------------------
 
 Clone the ``gpseer`` repository from Github.
-
 
 .. code-block:: bash
 

@@ -109,7 +109,7 @@ def main(
 
     # Expected files this will create
     expected_outputs = ["_cross-validation-scores.csv",
-                        "_correlation-plot.pdf"]
+                        "_cross-validation-plot.pdf"]
     output_root = prep_for_output(input_file,output_root,overwrite,expected_outputs)
 
     # Read data
@@ -143,7 +143,7 @@ def main(
     # Plot results
     # -------------------------------------------------------------------------
 
-    output_pdf = "{}_correlation-plot.pdf".format(output_root)
+    output_pdf = "{}_cross-validation-plot.pdf".format(output_root)
     logger.info(f"Plotting {output_pdf}...")
     fig, ax = plot.plot_test_train(df,bin_scalar=5)
     fig.savefig(output_pdf)

@@ -29,7 +29,7 @@ def test_main(
     )
 
     expected_outputs = ["_cross-validation-scores.csv",
-                        "_correlation-plot.pdf"]
+                        "_cross-validation-plot.pdf"]
     for e in expected_outputs:
         outfile = "{}{}".format(outroot,e)
         assert os.path.isfile(outfile)
