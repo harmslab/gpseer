@@ -5,7 +5,7 @@ from epistasis.models import (
     EpistasisPipeline,
     EpistasisLogisticRegression,
     EpistasisSpline,
-    EpistasisLinearRegression
+    EpistasisLasso
 )
 
 import os
@@ -100,6 +100,7 @@ def construct_model(
     spline_order=None,
     spline_smoothness=10,
     epistasis_order=1,
+    alpha=1,
 ):
     """Build an epistasis pipeline based on model
     parameters given.
@@ -109,6 +110,8 @@ def construct_model(
 
     If a spline_order or smoothness is given, add a nonlinear
     spline model with the given 'smoothness' and order.
+
+    alpha is a control parameter for the lasso regression
 
     Returns
     -------
@@ -124,7 +127,7 @@ def construct_model(
     if spline_order and spline_smoothness:
         model.append(EpistasisSpline(k=spline_order, s=spline_smoothness))
 
-    model.append(EpistasisLinearRegression(order=epistasis_order))
+    model.append(EpistasisLasso(order=epistasis_order,alpha=alpha))
 
     return model
 

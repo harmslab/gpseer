@@ -3,7 +3,7 @@ from epistasis.models import (
     EpistasisPipeline,
     EpistasisLogisticRegression,
     EpistasisSpline,
-    EpistasisLinearRegression
+    EpistasisLasso
 )
 
 def test_construct_model():
@@ -11,7 +11,7 @@ def test_construct_model():
     model = construct_model()
     assert isinstance(model, EpistasisPipeline)
     assert len(model) == 1
-    assert isinstance(model[0], EpistasisLinearRegression)
+    assert isinstance(model[0], EpistasisLasso)
 
     # Test default call of construct_model
     model = construct_model(
@@ -20,7 +20,7 @@ def test_construct_model():
     assert isinstance(model, EpistasisPipeline)
     assert len(model) == 2
     assert isinstance(model[0], EpistasisLogisticRegression)
-    assert isinstance(model[1], EpistasisLinearRegression)
+    assert isinstance(model[1], EpistasisLasso)
 
     # Test default call of construct_model
     model = construct_model(
@@ -31,4 +31,4 @@ def test_construct_model():
     assert len(model) == 3
     assert isinstance(model[0], EpistasisLogisticRegression)
     assert isinstance(model[1], EpistasisSpline)
-    assert isinstance(model[2], EpistasisLinearRegression)
+    assert isinstance(model[2], EpistasisLasso)

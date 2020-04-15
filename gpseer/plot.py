@@ -6,7 +6,7 @@ from epistasis.models import (
     EpistasisPipeline,
     EpistasisLogisticRegression,
     EpistasisSpline,
-    EpistasisLinearRegression
+    EpistasisLasso
 )
 
 from epistasis.pyplot.nonlinear import plot_scale
@@ -29,7 +29,7 @@ def plot_spline(model,prediction_df,title=None):
             spline_model = m
             break
 
-    # No spline to plot. 
+    # No spline to plot.
     if spline_model is None:
         return None, None
 

@@ -7,7 +7,7 @@ from epistasis.models import (
     EpistasisPipeline,
     EpistasisLogisticRegression,
     EpistasisSpline,
-    EpistasisLinearRegression
+    EpistasisLasso
 )
 
 from gpmap import GenotypePhenotypeMap
@@ -226,8 +226,9 @@ def create_stats_output(ml_model):
         elif isinstance(m,EpistasisSpline):
             spline_order = m.k
             spline_smoothness = m.s
-        elif isinstance(m,EpistasisLinearRegression):
+        elif isinstance(m,EpistasisLasso):
             epistasis_order = m.order
+            alpha = m.alpha
         else:
             err = "epistasis model {} not recognized\n".format(m)
             raise RuntimeError(err)
@@ -284,7 +285,8 @@ def create_stats_output(ml_model):
               "threshold":threshold,
               "spline_order":spline_order,
               "spline_smoothness":spline_smoothness,
-              "epistasis_order":epistasis_order}
+              "epistasis_order":epistasis_order,
+              "lasso_alpha":alpha}
 
     stats_df = pd.DataFrame(columns=["parameter","value"])
     for i, a in enumerate(to_add.keys()):
@@ -332,6 +334,7 @@ def main(
     spline_order=None,
     spline_smoothness=10,
     epistasis_order=1,
+    alpha=1,
     nreplicates=None,
     genotype_file=None,
     overwrite=False
@@ -356,7 +359,8 @@ def main(
         threshold=threshold,
         spline_order=spline_order,
         spline_smoothness=spline_smoothness,
-        epistasis_order=epistasis_order
+        epistasis_order=epistasis_order,
+        alpha=alpha
     )
     model.add_gpm(gpm)
     logger.info("└──> Done constructing model.")

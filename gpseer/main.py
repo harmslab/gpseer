@@ -71,6 +71,15 @@ OPTIONAL_ARGUMENTS = {
         """,
         default=1
     ),
+    "--alpha": dict(
+        type=float,
+        help="""
+        Control parameter for Lasso regression.  Multiplies L1 term.  See:
+        https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Lasso.html
+        for details.  (In our experience, leaving as default works well).
+        """,
+        default=1
+    ),
     "--overwrite": dict(
         action="store_true",
         help="""
