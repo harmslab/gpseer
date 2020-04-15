@@ -246,17 +246,30 @@ def create_stats_output(ml_model):
                                    row.mutation_letter)
         mutation_names.append(mutation)
 
+    # Grab binary genotypes above the threshold (if applied)
+    if isinstance(ml_model[0], EpistasisLogisticRegression):
+        above = ml_model[0].classes == 1
+        above_binary = ml_model.gpm.binary[above]
+    else:
+        above_binary = ml_model.gpm.binary
+
+    binary = ml_model.gpm.binary
+
     # Record all genotypes seen as as numpy array of binary integers
     genotypes_as_int = np.array([[int(m) for m in bin_genotype]
-                                 for bin_genotype in ml_model.gpm.binary],
+                                 for bin_genotype in binary],
                                 dtype=np.int)
+
+    genotypes_above_as_int = np.array([[int(m) for m in bin_genotype]
+                                       for bin_genotype in above_binary],
+                                       dtype=np.int)
 
     # Record the number of times each genotype was seen
     num_obs = np.sum(genotypes_as_int,axis=0)
-    mean_num_obs = np.mean(num_obs)
-    min_num_obs = np.min(num_obs)
+    num_obs_above = np.sum(genotypes_above_as_int,axis=0)
 
-    # Calculate the epistasis remaining in the map
+    # Calculate the epistasis remaining in the map to estimate how many times
+    # we need to see each mutation to converge.
     if isinstance(ml_model[0], EpistasisLogisticRegression):
         above = ml_model[0].classes == 1
         above_genotypes = ml_model.gpm.genotypes[above]
@@ -271,16 +284,17 @@ def create_stats_output(ml_model):
     num_obs_for_convergence = 83.896*epistasis + 1.5843
 
     # Calculate whether each mutation is expected to be converged
-    converged = [n > num_obs_for_convergence for n in num_obs]
+    converged = [n > num_obs_for_convergence for n in num_obs_above]
 
     # Calculate how high above (or below) convergence this
     # mutation is
-    fold_target = [n/num_obs_for_convergence for n in num_obs]
+    fold_target = [n/num_obs_for_convergence for n in num_obs_above]
 
     # Construct a data frame with summary statistics
     to_add = {"num_genotypes":len(genotypes_as_int),
               "num_unique_mutations":len(num_obs),
-              "unexplained variation (epistasis)":epistasis,
+              "explained_variation":ml_model.score(),
+              "num_parameters":ml_model.num_of_params,
               "num_obs_to_converge":num_obs_for_convergence,
               "threshold":threshold,
               "spline_order":spline_order,
@@ -296,6 +310,7 @@ def create_stats_output(ml_model):
     # is converged or not
     convergence_df = pd.DataFrame({"mutation":mutation_names,
                                    "num_obs":num_obs,
+                                   "num_obs_above":num_obs_above,
                                    "fold_target":fold_target,
                                    "converged":converged})
 
@@ -308,21 +323,30 @@ def plots_to_pdf(model,prediction_df,out_root):
     prediction_df: prediction_to_dataframe output, containing finalized dataframe
                   with predictions
     out_root: root name for all output pdfs
+
+    returns a list of the plots generated
     """
+
+    plots_written = []
 
     # Create a spline.  If no spline in pipeline, will be None.
     fig, ax = plot.plot_spline(model,prediction_df)
     if fig is not None:
         fig.savefig("{}_spline-fit.pdf".format(out_root))
+        plots_written.append("{}_spline-fit.pdf".format(out_root))
 
     # Plot correlation between predicted and observed values for training set
     fig, ax = plot.plot_correlation(model,prediction_df)
     fig.savefig("{}_correlation-plot.pdf".format(out_root))
+    plots_written.append("{}_correlation-plot.pdf".format(out_root))
 
     # Plot histograms of values for measured values, training set predictions,
     # and test set predictions
     fig, ax = plot.plot_histograms(model,prediction_df)
     fig.savefig("{}_phenotype-histograms.pdf".format(out_root))
+    plots_written.append("{}_phenotype-histograms.pdf".format(out_root))
+
+    return plots_written
 
 
 def main(
@@ -415,8 +439,9 @@ def main(
 
     # Plot pdfs of diagnostic graphs
     logger.info(f"Writing plots...")
-    plots_to_pdf(model,out_df,output_root)
+    plots_written = plots_to_pdf(model,out_df,output_root)
+    for w in plots_written:
+        logger.info(f"Writing {w}...")
     logger.info("└──> Done plotting!")
-
 
     logger.info("GPSeer finished!")

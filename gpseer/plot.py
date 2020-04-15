@@ -295,28 +295,33 @@ def plot_test_train(df,bin_scalar=5):
     max_value = 1
     five_pct = (max_value - min_value)*0.05
 
+    bin_vector = np.linspace(0,1,num_bins)
     hist = ax.hist2d(df.train_scores,
                      df.test_scores,
-                     bins=[np.linspace(0,1,num_bins),np.linspace(0,1,num_bins)],
+                     bins=[bin_vector,bin_vector],
                      cmap="plasma")
 
     ax.set_aspect('equal', 'box')
     fig.tight_layout()
 
-    median = np.unravel_index(np.argmax(hist[0],axis=None),hist[0].shape)
-    train_median = hist[1][median[0]]
-    test_median = hist[2][median[1]]
+    mode = np.unravel_index(np.argmax(hist[0],axis=None),hist[0].shape)
 
-    ax.plot((train_median,train_median),(0,1),"--",color="white")
-    ax.plot((0,1),(test_median,test_median),"--",color="white")
+    # offset so we are in center of each bin
+    offset = (bin_vector[1] - bin_vector[0])/2
+
+    train_mode = hist[1][mode[0]] + offset
+    test_mode = hist[2][mode[1]] + offset
+
+    ax.plot((train_mode,train_mode),(0,1),"--",color="white")
+    ax.plot((0,1),(test_mode,test_mode),"--",color="white")
 
     ax.text(min_value + 2*five_pct,
             min_value + 3*five_pct,
-            "R_train: {:.2f}".format(train_median),color="white")
+            "R_train: {:.2f}".format(train_mode),color="white")
 
     ax.text(min_value + 2*five_pct,
             min_value + 2*five_pct,
-            "R_test: {:.2f}".format(test_median),color="white")
+            "R_test: {:.2f}".format(test_mode),color="white")
 
     #if min_value > 0.9:
 #        min_value = 0.9

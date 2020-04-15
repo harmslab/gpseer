@@ -21,7 +21,7 @@ copyright = '2019, Zach Sailer, Mike Harms'
 author = 'Zach Sailer, Mike Harms'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1'
+release = '0.2'
 
 
 # -- General configuration ---------------------------------------------------
