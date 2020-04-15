@@ -6,7 +6,7 @@ from epistasis.models import (
     EpistasisPipeline,
     EpistasisLogisticRegression,
     EpistasisSpline,
-    EpistasisLinearRegression
+    EpistasisLasso
 )
 
 from epistasis.pyplot.nonlinear import plot_scale

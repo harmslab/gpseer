@@ -26,7 +26,7 @@ Installing from source
 
 Clone the ``gpseer`` repository from Github.
 
-.. code-block:: bash
+.. code-block:: console
 
     > git clone https://github.com/harmslab/gpseer
     > cd gpseer

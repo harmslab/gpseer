@@ -144,7 +144,7 @@ Output
   threshold will be plotted as gray points.  The lower panel indicates the fit
   residuals.  A high quality fit will be randomly distributed about zero.
 
-  .. image:: correlation-plot.png
+  .. image:: linear_spline2_threshold5_correlation-plot.png
     :align: center
 
 * **{output_root}_spline-fit.pdf**: If a spline was used, this plot will show
@@ -153,7 +153,7 @@ Output
   transforms the data such that the red line becomes linear. If a threshold was
   applied, phenotypes below the threshold will be plotted as gray points.
 
-  .. image:: spline-fit.png
+  .. image:: linear_spline2_threshold5_spline-fit.png
     :align: center
 
 * **{output_root}_phenotype-histograms.pdf**: Each panel shows histograms for
@@ -164,7 +164,7 @@ Output
   training set and test set predictions may indicate a mismatch between the
   genotypes used to train the model and the genotypes that are being predicted.
 
-  .. image:: phenotype-histograms.png
+  .. image:: linear_spline2_threshold5_phenotype-histograms.png
     :align: center
 
 ``cross-validate``
@@ -180,5 +180,5 @@ Output
   distribution in each dimension.  When :math:`R^{2}_{train} \gg R^{2}_{test}`,
   it indicates the model is being overfit.
 
-  .. image:: cross-validation-plot.png
+  .. image:: linear_spline2_threshold5_cross-validation-plot.png
     :align: center

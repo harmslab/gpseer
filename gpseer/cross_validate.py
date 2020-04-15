@@ -104,6 +104,7 @@ def main(
     spline_order=None,
     spline_smoothness=10,
     epistasis_order=1,
+    alpha=1,
     overwrite=False
 ):
 
@@ -123,7 +124,8 @@ def main(
         threshold=threshold,
         spline_order=spline_order,
         spline_smoothness=spline_smoothness,
-        epistasis_order=epistasis_order
+        epistasis_order=epistasis_order,
+        alpha=alpha
     )
     full_model.add_gpm(gpm)
     full_model.fit()
@@ -134,7 +136,8 @@ def main(
         threshold=threshold,
         spline_order=spline_order,
         spline_smoothness=spline_smoothness,
-        epistasis_order=epistasis_order
+        epistasis_order=epistasis_order,
+        alpha=alpha
     )
     df = cross_validate_to_dataframe(sub_model,gpm,n_samples,train_fraction)
     logger.info("└──> Done sampling data.")
