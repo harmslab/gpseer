@@ -53,12 +53,14 @@ model, so you can run the following:
                   parameter     value
     0         num_genotypes        76
     1  num_unique_mutations         8
-    2   explained_variation  0.594918
-    3   num_obs_to_converge   35.5691
-    4             threshold      None
-    5          spline_order      None
-    6     spline_smoothness      None
-    7       epistasis_order         1
+    2   explained_variation  0.592511
+    3        num_parameters         9
+    4   num_obs_to_converge    35.771
+    5             threshold      None
+    6          spline_order      None
+    7     spline_smoothness      None
+    8       epistasis_order         1
+    9           lasso_alpha         1
 
 
     [GPSeer]
@@ -66,15 +68,15 @@ model, so you can run the following:
     Convergence:
     ------------
 
-      mutation  num_obs  fold_target  converged
-    0      I0M       47     1.321372       True
-    1      N1E       46     1.293257       True
-    2      T2K       12     0.337371      False
-    3      A3S       41     1.152686       True
-    4      E4Q       35     0.984000      False
-    5      S5N       46     1.293257       True
-    6      I6T       28     0.787200      False
-    7      R7I       30     0.843429      False
+      mutation  num_obs  num_obs_above  fold_target  converged
+    0      I0M       47             47     1.313913       True
+    1      N1E       46             46     1.285958       True
+    2      T2K       12             12     0.335467      False
+    3      A3S       41             41     1.146180       True
+    4      E4Q       35             35     0.978446      False
+    5      S5N       46             46     1.285958       True
+    6      I6T       28             28     0.782757      False
+    7      R7I       30             30     0.838668      False
 
 
     [GPSeer] └──> Done.
@@ -86,12 +88,13 @@ model, so you can run the following:
     [GPSeer] └──> Done plotting!
     [GPSeer] GPSeer finished!
 
+
 You should have seen output like what is shown above, indicating the program ran.  We'll
 worry about all of the output later, but for the moment, we'll start by asking
 if the fit yielded anything useful.  The first place we might look is the
 ``explained_variation`` field under the ``Fit statistics`` heading in the text output.
 For this model, we get
-0.595.  If the model was perfect, we could get a value of 1.000, so 0.595 is not
+0.593.  If the model was perfect, we could get a value of 1.000, so 0.593 is not
 stellar.  The next place we can look is at the correlation plot generated:
 ``pfcrt-raw-data_correlation-plot.pdf``:
 
@@ -141,13 +144,13 @@ I increased the value of ``--spline_smoothness`` until it worked:
 
     ...
 
-    2   explained_variation  0.792999
+    2   explained_variation  0.776917
 
     ...
 
 Great, that worked!  Again, I've removed most of the output and highlighted an
-important bit: the explained variation has gone up, from ``0.595`` in our initial
-fit to ``0.793``.  Good news!  We can also look at the output plot ``linear_spline2_correlation-plot.pdf``:
+important bit: the explained variation has gone up, from ``0.593`` in our initial
+fit to ``0.777``.  Good news!  We can also look at the output plot ``linear_spline2_correlation-plot.pdf``:
 
 .. image:: linear_spline2_correlation-plot.png
   :align: center
@@ -191,12 +194,12 @@ our detection threshold (``--threshold 5``).  Note I also updated the
 
     ...
 
-    2   explained_variation  0.832367
+    2   explained_variation  0.828986
 
     ...
 
-This gave a slight increase in our explained variance (``0.832`` rather than
-``0.793``).  We can look first at the spline plot in ``linear_spline2_threshold5_spline-fit.pdf``:
+This gave a slight increase in our explained variance (``0.829`` rather than
+``0.777``).  We can look first at the spline plot in ``linear_spline2_threshold5_spline-fit.pdf``:
 
 .. image:: linear_spline2_threshold5_spline-fit.png
     :align: center
@@ -264,7 +267,7 @@ bin in both dimensions.  The numbers indicate the values of :math:`R^{2}_{train}
 and :math:`R^{2}_{test}` for this bin.
 
 Notice that, for this fit, :math:`R^{2}_{train}` and :math:`R^{2}_{test}` have
-similar values near 0.85.  This is a good indication that the model is
+similar values near 0.83.  This is a good indication that the model is
 predictive at the same level it is trained: the model is highly trained, but not
 overtrained.
 
@@ -289,7 +292,7 @@ The cross-validation plot that results is here:
 Notice that the distribution in :math:`R^{2}_{test}` is now much wider, and is
 splayed between 0 and 1.  More alarmingly, :math:`R^{2}_{train}` and :math:`R^{2}_{test}`
 have begun to diverge.  The most common outcome of the sampling protocol is a
-model with  :math:`R^{2}_{train} = 0.91` and :math:`R^{2}_{test} = 0.79`.
+model with  :math:`R^{2}_{train} = 0.91` and :math:`R^{2}_{test} = 0.84`.
 We are improving our ability to fit the training
 data at the expense of our ability to predict the test data.
 
@@ -309,7 +312,7 @@ The resulting plot is shown below:
     :align: center
 
 Note the even greater divergence between :math:`R^{2}_{train} = 0.98` and
-:math:`R^{2}_{test} = 0.26`.
+:math:`R^{2}_{test} = 0.39`.
 
 Finally, for comparison, we can compare the cross-validation result for over fitting
 a model to the cross-validation result for under fitting a model. We can do a
@@ -327,7 +330,7 @@ without the spline or classifier.
 
 Note that, for this model, :math:`R^{2}_{test}` and :math:`R^{2}_{train}` are
 lower than for the best model, but have also moved together.  Both values are
-near 0.6.  Thus, this is a poor fit, but not an over fit.
+near 0.57.  Thus, this is a poor fit, but not an over fit.
 
 Thus, a cross-validation plot provides a useful way to identify a predictive
 model for phenotypes.  In this case, the best model is a threshold, nonlinear
