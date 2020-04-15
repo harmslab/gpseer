@@ -16,7 +16,7 @@ tutorial can be done in a notebook rather than on the command line.
 If you haven't already, you can download the data file containing the measurements,
 ``pfcrt-raw-data.csv``, by running:
 
-.. code-block::
+.. code-block:: console
 
     > gpseer fetch-example
 
@@ -32,7 +32,7 @@ predict the phenotype of each genotype as the sum of the effect of all
 mutations that are found in that genotype.  The additive model is the default
 model, so you can run the following:
 
-.. code-block::
+.. code-block:: console
 
     > gpseer estimate-ml pfcrt-raw-data.csv
 
@@ -95,7 +95,7 @@ For this model, we get
 stellar.  The next place we can look is at the correlation plot generated:
 ``pfcrt-raw-data_correlation-plot.pdf``:
 
-.. image:: tutorial_1_no_no_correlation.png
+.. image:: linear_correlation-plot.png
   :align: center
 
 This plot shows the predicted value for each genotype in the training set
@@ -117,7 +117,7 @@ I'm also going to add an ``output_root`` argument ("linear_spline2") so our new
 predictions won't overwrite our existing predictions. This root will be
 pre-pended to every output file.
 
-.. code-block::
+.. code-block:: console
 
     > gpseer estimate-ml pfcrt-raw-data.csv --spline_order 2 --output_root linear_spline2
 
@@ -135,7 +135,7 @@ object).
 
 I increased the value of ``--spline_smoothness`` until it worked:
 
-.. code-block::
+.. code-block:: console
 
     > gpseer estimate-ml pfcrt-raw-data.csv --spline_order 2 --spline_smoothness 100000  --output_root linear_spline2
 
@@ -149,7 +149,7 @@ Great, that worked!  Again, I've removed most of the output and highlighted an
 important bit: the explained variation has gone up, from ``0.595`` in our initial
 fit to ``0.793``.  Good news!  We can also look at the output plot ``linear_spline2_correlation-plot.pdf``:
 
-.. image:: tutorial_1_2nd_no_correlation.png
+.. image:: linear_spline2_correlation-plot.png
   :align: center
 
 This looks much better than the plot above.  We're explaining more of the variation,
@@ -158,7 +158,7 @@ particularly at low phenotypes, but this is a definite improvement.
 
 We can see what the spline looks like by checking out ``linear_spline2_spline-fit.pdf``:
 
-.. image:: tutorial_1_2nd_no_spline-fit.png
+.. image:: linear_spline2_spline-fit.png
   :align: center
 
 This plot shows the observed value for each genotype against its prediction
@@ -185,7 +185,7 @@ spline and linear model are fit to the data.  To add the classifier, we put in
 our detection threshold (``--threshold 5``).  Note I also updated the
 ``output_root`` argument to be "linear_spline2_threshold5":
 
-.. code-block::
+.. code-block:: console
 
     gpseer estimate-ml pfcrt-raw-data.csv --spline_order 2 --spline_smoothness 100000  --threshold 5 --output_root linear_spline2_threshold5
 
@@ -198,14 +198,14 @@ our detection threshold (``--threshold 5``).  Note I also updated the
 This gave a slight increase in our explained variance (``0.832`` rather than
 ``0.793``).  We can look first at the spline plot in ``linear_spline2_threshold5_spline-fit.pdf``:
 
-.. image:: tutorial_1_threshold5_spline-fit.png
+.. image:: linear_spline2_threshold5_spline-fit.png
     :align: center
 
 Notice that almost all of those strange points have now collapsed down to zero:
 our classifier has identified all of the gray points as being below the detection
 threshold.  Now lets look at the correlation plot in ``linear_spline2_threshold5_correlation-plot.pdf``:
 
-.. image:: tutorial_1_2nd_threshold5_correlation.png
+.. image:: linear_spline2_threshold5_correlation-plot.png
     :align: center
 
 The model is looking much better.  A whole slew of poor predictions at lower
@@ -231,9 +231,9 @@ subcommand rather than ``estimate-ml``.  I also increased the number of samples
 (``--n_samples 1000``) to get a pretty graph.  This took about 2 minutes on my
 laptop.
 
-.. code-block::
+.. code-block:: console
 
-    > gpseer cross-validate pfcrt-raw-data.csv --spline_order 3 --spline_smoothness 100000 --threshold 5 --output_root linear_spline2_threshold5 --n_samples 1000
+    > gpseer cross-validate pfcrt-raw-data.csv --spline_order 2 --spline_smoothness 100000 --threshold 5 --output_root linear_spline2_threshold5 --n_samples 1000
 
     [GPSeer] Reading data from pfcrt-raw-data.csv...
     [GPSeer] └──> Done reading data.
@@ -251,7 +251,7 @@ laptop.
 The primary output of this analysis is the graph stored in
 ``linear_spline2_threshold5_cross-validation-plot.pdf``:
 
-.. image:: tutorial_1_2nd_threshold5_correlation_cross-validation-plot.png
+.. image:: linear_spline2_threshold5_cross-validation-plot.png
     :align: center
 
 
@@ -273,16 +273,16 @@ terms (epistasis) between the effects of mutations to our training model.  To do
 so, I added ``--epistasis_order 2`` and changed ``--output_root`` to
 ``pairwise_spline2_threshold5``.
 
-.. code-block::
+.. code-block:: console
 
-    > gpseer cross-validate pfcrt-raw-data.csv --spline_order 3 --spline_smoothness 100000 --threshold 5 --epistasis_order 2 --output_root pairwise_spline2_threshold5 --n_samples 1000
+    > gpseer cross-validate pfcrt-raw-data.csv --spline_order 2 --spline_smoothness 100000 --threshold 5 --epistasis_order 2 --output_root pairwise_spline2_threshold5 --n_samples 1000
 
     ...
 
 
 The cross-validation plot that results is here:
 
-.. image::  tutorial_2_2nd_threshold5_correlation_cross-validation-plot.png
+.. image::  pairwise_spline2_threshold5_cross-validation-plot.png
     :align: center
 
 
@@ -296,16 +296,16 @@ data at the expense of our ability to predict the test data.
 We can make things even worse by fitting three-way interactions (high-order)
 epistasis.
 
-.. code-block::
+.. code-block:: console
 
-    > gpseer cross-validate pfcrt-raw-data.csv --spline_order 3 --spline_smoothness 100000 --threshold 5 --epistasis_order 3 --output_root three-way_spline2_threshold5 --n_samples 1000
+    > gpseer cross-validate pfcrt-raw-data.csv --spline_order 2 --spline_smoothness 100000 --threshold 5 --epistasis_order 3 --output_root threeway_spline2_threshold5 --n_samples 1000
 
     ...
 
 
 The resulting plot is shown below:
 
-.. image::  tutorial_3_2nd_threshold5_correlation_cross-validation-plot.png
+.. image::  threeway_spline2_threshold5_cross-validation-plot.png
     :align: center
 
 Note the even greater divergence between :math:`R^{2}_{train} = 0.98` and
@@ -322,7 +322,7 @@ without the spline or classifier.
 
     ...
 
-.. image:: tutorial_1_cross-validation-plot.png
+.. image:: linear_cross-validation-plot.png
     :align: center
 
 Note that, for this model, :math:`R^{2}_{test}` and :math:`R^{2}_{train}` are
@@ -415,7 +415,7 @@ histogram of the phenotype values for the training set to the predicted
 phenotypes.  The output for this is stored in
 ``linear_spline2_threshold5_phenotype-histograms.pdf`` and reproduced below:
 
-.. image:: tutorial_1_2nd_threshold5_correlation_phenotype-histograms.png
+.. image:: linear_spline2_threshold5_phenotype-histograms.png
     :align: center
 
 The top panel shows the histogram for the measured values.

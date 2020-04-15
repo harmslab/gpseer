@@ -14,7 +14,7 @@ Downloading examples
 
 Download the gpseer examples:
 
-.. code-block::
+.. code-block:: console
 
     > gpseer fetch-example
 
@@ -23,7 +23,7 @@ Download the gpseer examples:
     [GPSeer] └──> Done!
 
 
-.. code-block::
+.. code-block:: console
 
     > cd examples/
     > ls
@@ -43,7 +43,7 @@ Predicting unmeasured phenotypes of from a collection of measured phenotypes
 Estimate the maximum likelihood additive model on the training set and predict
 all missing genotypes.
 
-.. code-block::
+.. code-block:: console
 
     > gpseer estimate-ml example-train.csv
 
@@ -107,7 +107,7 @@ Estimate how well your model is predicting data using the "cross-validate"
 subcommand. Try the example below where we generate 10 subsets from the data
 and compute our prediction scores.
 
-.. code-block::
+.. code-block:: console
 
     > gpseer goodness-of-fit example-train.csv
 
