@@ -12,7 +12,7 @@ pip install gpseer
 
 To use as a command line, call `gpseer` on an input `.csv` file containing genotype-phenotype data.
 
-The [API Demo.ipynb](https://github.com/harmsm/gpseer/raw/update-docs/examples/API%20Demo.ipynb)
+The [API Demo.ipynb](https://nbviewer.jupyter.org/github/harmslab/gpseer/blob/master/examples/API%20Demo.ipynb)
 demonstrates how to use GPSeer in a Jupyter notebook.
 
 ### Downloading the example

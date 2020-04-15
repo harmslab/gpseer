@@ -17,10 +17,11 @@ DESCRIPTION = '''Python API to infer missing data in sparsely sampled \
 genotype-phenotype maps.'''
 URL = 'https://github.com/harmslab/gpseer'
 EMAIL = 'zachsailer@gmail.com'
-AUTHOR = 'Zach Sailer'
+AUTHOR = 'Zach Sailer and Mike Harms'
 
 # What packages are required for this module to be executed?
 REQUIRED = ['requests', 'numpy', 'pandas', 'gpmap', 'epistasis', 'tqdm','matplotlib']
+TESTS_REQUIRE = ['pytest', 'pytest-cov', 'pytest-console-scripts', 'pytest-datafiles']
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -66,6 +67,10 @@ class UploadCommand(Command):
         self.status('Uploading the package to PyPi via Twine…')
         os.system('twine upload dist/*')
 
+        self.status('Pushing git tags…')
+        os.system('git tag v{0}'.format(about['__version__']))
+        os.system('git push --tags')
+
         sys.exit()
 
 
@@ -85,7 +90,7 @@ setup(
     },
     install_requires=REQUIRED,
     extras_require = {
-        'test': ['pytest', 'pytest-cov', 'pytest-console-scripts', 'pytest-datafiles'],
+        'test': TESTS_REQUIRE,
     },
     include_package_data=True,
     license='MIT',
