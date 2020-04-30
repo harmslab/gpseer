@@ -6,7 +6,7 @@ This is a very quick introduction to gpseer that demonstrates the basic modes of
 the software. A complete tutorial--including how to interpret the outputs of the
 calculation--is given on the `tutorial <tutorial.html>`_ page.
 
-The `API Demo.ipynb <https://github.com/harmsmlab/gpseer/raw/master/examples/API%20Demo.ipynb>`_
+The `API Demo.ipynb <https://nbviewer.jupyter.org/github/harmslab/gpseer/blob/master/examples/API%20Demo.ipynb>`_
 demonstrates how to use GPSeer in a Jupyter notebook.
 
 Downloading examples
