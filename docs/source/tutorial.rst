@@ -9,7 +9,7 @@ transports a small molecule.  It is binary map with eight sites, so it has
 :math:`2^{8}=256` genotypes.  Of these, we have experimental measurements of
 the transport phenotype for 76 genotypes.
 
-As an aside, the `API Demo.ipynb <https://github.com/harmsmlab/gpseer/raw/master/examples/API%20Demo.ipynb>`_
+As an aside, the `API Demo.ipynb <https://nbviewer.jupyter.org/github/harmslab/gpseer/blob/master/examples/API%20Demo.ipynb>`_
 demonstrates how to use GPSeer in a Jupyter notebook. All of the work in this
 tutorial can be done in a notebook rather than on the command line.
 
