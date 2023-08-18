@@ -1,0 +1,7 @@
+requests
+numpy
+pandas
+gpmap
+epistasis
+tqdm
+matplotlib
