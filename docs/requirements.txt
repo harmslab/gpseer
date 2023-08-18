@@ -3,4 +3,4 @@ pandas
 gpmap
 epistasis
 sphinx-argparse
-git+https://github.com/pandas-dev/pydata-sphinx-theme.git@master
+pydata-sphinx-theme
